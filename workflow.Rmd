@@ -1,0 +1,4726 @@
+---
+title: "Grackle Project Workflow"
+author: "Jeremy Summers"
+date: "May 2, 2022"
+output: pdf_document
+toc: TRUE
+toc_depth: 3
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+This document contains all code used for the final analysis in "The role of climate change and niche shifts in divergent range dynamics of a sister-species pair" Summers et al. 2022
+
+# Packages Used
+
+All Packages have their version information as a comment beside them
+
+```{r, eval = FALSE}
+# R version 4.1.0 (2021-05-18)
+
+library(auk) # 0.5.1
+library(lubridate) # 1.8.0
+library(sf) # 1.0.3
+library(gridExtra) # 2.3
+library(readr) # 2.0.2
+library(plyr) # 1.8.6
+library(dismo) # 1.3.5
+library(exactextractr) # 0.7.1
+library(gdalUtils) # 2.0.3.2
+library(tidyverse) # 1.3.1
+library(gdistance) # 1.3.6
+library(raster) # 3.5.2
+library(reshape2) # 1.4.4
+library(dggridR) # 2.0.4
+library(scam) # 2.8-0
+library(ranger) # 0.13.1
+library(PresenceAbsence) # 1.1.9
+library(verification) # 1.42
+library(fields) # 13.3
+library(ebirdst) # 0.2.2
+library(landscapemetrics) # 1.5.4
+library(rgeos) # 0.5-8
+library(RColorBrewer) # 1.1-2
+library(scales) # 1.1.1
+library(cowplot) #1.1.1
+library(ggh4x) # 0.2.1
+library(ggsn) # 0.5.0
+library(ggnewscale) # 0.4.5
+library(usdm) # 1.1-18
+```
+
+# Data File Directories
+
+The following raw data files were used for the construction of our species distribution models. The files are listed with their location, description, and source.
+
+
+#### Data Downloaded from the Basic eBird Dataset
+
+Citation: eBird Basic Dataset. Version: EBD_relJan-2021. Cornell Lab of Ornithology, Ithaca, New York. Jan 2021.
+
+Download Location: https://ebird.org/data/download
+
+**/data/eBird/ebd_botgra_196001_202102_relJan-2021.zip/ebd_botgra_196001_202102_relJan-2021.txt**
+
+eBird checklists from January 1st, 1960, to February 1st, 2021 with observations of boat-tailed grackles (*Quiscalus major*).
+
+**/data/eBird/ebd_grtgra_196001_202102_relJan-2021.zip/ebd_grtgra_196001_202102_relJan-2021.txt**
+
+eBird checklists from January 1st, 1960, to February 1st, 2021 with observations of great-tailed grackles (*Quiscalus mexicanus*).
+
+**/data/eBird/ebd_sampling_relJan-2021.txt**
+
+eBird sampling event data up to February 1st, 2021. File includes effort data for all eBird checklists.
+
+
+#### Data Downloaded from WorldClim
+
+Citation: Fick SE, Hijmans RJ. 2017. WorldClim 2: New 1-km spatial resolution climate surfaces for global land areas. International Journal of Climatology. 37(12):4302-4315.
+
+Download Location: https://www.worldclim.org/data/monthlywth.html
+
+**/data/env/monthly_clim/wc2.1_2.5m_prec_1970-1979.zip**
+
+Monthly global precipitation from 1970-1979
+
+**/data/env/monthly_clim/wc2.1_2.5m_prec_2010-2018.zip**
+
+Monthly global precipitation from 2010-2018 (last available date)
+
+**/data/env/monthly_clim/wc2.1_2.5m_tmax_1970-1979.zip**
+
+Monthly global maximum temperature from 1970-1979
+
+**/data/env/monthly_clim/wc2.1_2.5m_tmax_2010-2018.zip**
+
+Monthly global maximum temperature from 2010-2018 (last available date)
+
+**/data/env/monthly_clim/wc2.1_2.5m_tmin_1970-1979.zip**
+
+Monthly global minimum temperature from 1970-1979
+
+**/data/env/monthly_clim/wc2.1_2.5m_tmin_2010-2018.zip**
+
+Monthly global minimum temperature from 2010-2018 (last available date)
+
+#### Data Downloaded from USGS
+
+##### Global Multi-resolution Terrain Elevation Data 2010
+
+Citation: Danielson JJ, Gesch DB. 2011 Global multi-resolution terrain elevation data 2010 (GMTED2010). US Geological Survey Open-File Report 2011-1073: 26 p
+
+Download Location: https://www.usgs.gov/coastal-changes-and-impacts/gmted2010
+
+**/data/env/elevation/10n090w_20101117_gmted_med150.tif**
+
+Median elevation for tile ranging from 10N-30N and 90W-60W, 15 arc second resolution
+
+**/data/env/elevation/10n120w_20101117_gmted_med150.tif**
+
+Median elevation for tile ranging from 10N-30N and 120W-90W, 15 arc second resolution
+
+**/data/env/elevation/10s090w_20101117_gmted_med150.tif**
+
+Median elevation for tile ranging from 10S-10N and 90W-60W, 15 arc second resolution
+
+**/data/env/elevation/30n090w_20101117_gmted_med150.tif**
+
+Median elevation for tile ranging from 30N-50N and 90W-60W, 15 arc second resolution
+
+**/data/env/elevation/30n120w_20101117_gmted_med150.tif**
+
+Median elevation for tile ranging from 30N-50N and 120W-90W, 15 arc second resolution
+
+**/data/env/elevation/30n150w_20101117_gmted_med150.tif**
+
+Median elevation for tile ranging from 30N-50N and 150W-120W, 15 arc second resolution
+
+##### National Land Cover Database
+
+Citation: Homer C, Dewitz J, Yang L, Jin S, Danielson P, Xian G, Couston J, Herold N, Wickham J, Megown K. 2015. Completion of the 2011 National Land Cover Database for the conterminous United States-representing a decade of land cover change information. Photogrammetric Engineering & Remote Sensing. 81(5):345-354
+
+Download Location: https://www.mrlc.gov/data?f%5B0%5D=category%3ALand%20Cover
+
+**/data/env/lcd_2019_land_cover_l48_20210604.zip**
+
+NLCD 2019
+
+**/data/env/NLCD_2016_Land_Cover_L48_20190424.zip**
+
+NLCD 2016
+
+**/data/env/NLCD_2013_Land_Cover_L48_20190424.zip**
+
+NLCD 2013
+
+**/data/env/NLCD_2011_Land_Cover_L48_20190424.zip**
+
+NLCD 2011
+
+##### Modeled Historical Land Use and Land Cover
+
+Citation: Sohl T, Reker R, Bouchard M, Sayler K, Dornbierer J, Wika S, Quenzer R, Friesz A. 2016. Modeled historical land use and land cover for the conterminous United States. Journal of Land Use Science. 11(4):476-499
+
+Download Location: https://www.sciencebase.gov/catalog/item/59d3c73de4b05fe04cc3d1d1
+
+**/data/CONUS/CONUS_Backcasting_y1970.tif**
+
+Land cover data from 1970
+
+**/data/CONUS/CONUS_Backcasting_y1971.tif**
+
+Land cover data from 1971
+
+**/data/CONUS/CONUS_Backcasting_y1972.tif**
+
+Land cover data from 1972
+
+**/data/CONUS/CONUS_Backcasting_y1973.tif**
+
+Land cover data from 1973
+
+**/data/CONUS/CONUS_Backcasting_y1974.tif**
+
+Land cover data from 1974
+
+**/data/CONUS/CONUS_Backcasting_y1975.tif**
+
+Land cover data from 1975
+
+**/data/CONUS/CONUS_Backcasting_y1976.tif**
+
+Land cover data from 1976
+
+**/data/CONUS/CONUS_Backcasting_y1977.tif**
+
+Land cover data from 1977
+
+**/data/CONUS/CONUS_Backcasting_y1978.tif**
+
+Land cover data from 1978
+
+**/data/CONUS/CONUS_Backcasting_y1979.tif**
+
+Land cover data from 1979
+
+#### Data Downloaded from Natural Earth
+
+Citation: Made with Natural Earth. Free vector and raster map data @ naturalearthdata.com.
+
+Download Location: https://www.naturalearthdata.com/downloads/10m-physical-vectors/
+
+**data/env/natural_earth/ne_10m_rivers_lake_centerlines/ne_10m_rivers_lake_centerlines.shp**
+
+river and lake centerline shapefile, 1:10 million scale
+
+**data/env/natural_earth/ne_10m_lakes/ne_10m_lakes.shp**
+
+Lake shapefile, 1:10 million scale
+
+**data/env/natural_earth/ne_10m_coastline/ne_10m_coastline.shp**
+
+Coastline shapefile, 1:10 million scale
+
+**data/env/natural_earth/ne_10m_lakes_north_america/ne_10m_lakes_north_america.shp**
+
+North American detailed lake shapefile, 1:10 million scale
+
+**data/env/natural_earth/ne_10m_rivers_north_america/ne_10m_rivers_north_america.shp**
+
+North American detailed river shapefile, 1:10 million scale
+
+# Data Processing
+
+## Filtering and Zero-Filling eBird data
+
+Within this section we applied filtering for the eBird data to include only observations for GTGR and BTGR from the United States that have a stationary or traveling protocol. We then zero-filled the data, a process where we add all completed checklists within the sample time periods and to the GTGR and BTGR observations, marking the observation of each species as zero if the checklist is not already present in the GTGR and BTGR observations. After zero-filling, we filtered the data to reduce variation in detectability, limiting observations to those less than 5 hours in duration, less than 5 km in travel distance, and with 10 or fewer observers. The code in this section was modified from section 2.2 and 2.3 of Best Practices for Using eBird Data (Strimas-Mackey et al. 2020).
+
+```{r, eval = FALSE}
+# Load the GTGR observations
+gtg_ebd <- auk_ebd(paste0("/data/eBird/ebd_grtgra_196001_202102_relJan-2021/",
+                          "ebd_grtgra_196001_202102_relJan-2021.txt"), 
+                   file_sampling = "data/eBird/ebd_sampling_relJan-2021.txt")
+
+# define filters
+ebd_filters <- gtg_ebd %>%
+  auk_species(c("Quiscalus mexicanus")) %>% 
+  # only include records from the US
+  auk_country(c("United States")) %>%
+  # restrict to the standard traveling and stationary count protocols
+  auk_protocol(protocol = c("Stationary", "Traveling")) %>% 
+  auk_complete()
+
+# create filtered GTGR observations
+data_dir <- "/data/eBird"
+f_ebd <- file.path(data_dir, "ebd_gtg_NA.txt")
+f_sampling <- file.path(data_dir, "ebd_sampling_relJan-2021.txt")
+if (!file.exists(f_ebd)) {
+  auk_filter(ebd_filters, file = f_ebd, file_sampling = f_sampling)
+}
+
+#zero filled GTGR data
+gtg_zf <- auk_zerofill(f_ebd, f_sampling, collapse = TRUE)
+
+## Repeat for BTGR
+
+# Load the BTGR observations
+btg_ebd <- auk_ebd(paste0("/data/eBird/ebd_botgra_196001_202102_relJan-2021/",
+                          "ebd_botgra_196001_202102_relJan-2021.txt"), 
+                   file_sampling = "data/eBird/ebd_sampling_relJan-2021.txt")
+
+# define filters
+ebd_filters <- btg_ebd %>%
+  auk_species(c("Quiscalus major")) %>% 
+  # only include records from the US
+  auk_country(c("United States")) %>%
+  # restrict to the standard traveling and stationary count protocols
+  auk_protocol(protocol = c("Stationary", "Traveling")) %>% 
+  auk_complete()
+
+# create filtered GTGR observations
+f_ebd <- file.path(data_dir, "ebd_btg_NA.txt")
+f_sampling <- file.path(data_dir, "ebd_sampling_relJan-2021.txt")
+if (!file.exists(f_ebd)) {
+  auk_filter(ebd_filters, file = f_ebd, file_sampling = f_sampling)
+}
+
+# zero filled GTGR data
+btg_zf <- auk_zerofill(f_ebd, f_sampling, collapse = TRUE)
+
+# convert time to decimal format
+time_to_decimal <- function(x) {
+  x <- hms(x, quiet = TRUE)
+  hour(x) + minute(x) / 60 + second(x) / 3600
+}
+
+# clean up variables
+gtg_zf <- gtg_zf %>% 
+  mutate(
+    # convert X to NA
+    observation_count = if_else(observation_count == "X", 
+                                NA_character_, observation_count),
+    observation_count = as.integer(observation_count),
+    # effort_distance_km to 0 for non-travelling counts
+    effort_distance_km = if_else(protocol_type != "Traveling", 
+                                 0, effort_distance_km),
+    # convert time to decimal hours since midnight
+    time_observations_started = time_to_decimal(time_observations_started),
+    # split date into year and day of year
+    year = year(observation_date),
+    day_of_year = yday(observation_date)
+  )
+
+btg_zf <- btg_zf %>% 
+  mutate(
+    # convert X to NA
+    observation_count = if_else(observation_count == "X", 
+                                NA_character_, observation_count),
+    observation_count = as.integer(observation_count),
+    # effort_distance_km to 0 for non-travelling counts
+    effort_distance_km = if_else(protocol_type != "Traveling", 
+                                 0, effort_distance_km),
+    # convert time to decimal hours since midnight
+    time_observations_started = time_to_decimal(time_observations_started),
+    # split date into year and day of year
+    year = year(observation_date),
+    day_of_year = yday(observation_date)
+  )
+
+
+# additional filtering GTGR
+gtg_zf_filtered <- gtg_zf %>% 
+  filter(
+    # effort filters
+    duration_minutes <= 5 * 60,
+    effort_distance_km <= 5,
+    # 10 or fewer observers
+    number_observers <= 10)
+
+# additional filtering BTGR
+btg_zf_filtered <- btg_zf %>% 
+  filter(
+    # effort filters
+    duration_minutes <= 5 * 60,
+    effort_distance_km <= 5,
+    # 10 or fewer observers
+    number_observers <= 10)
+
+# save zero filled data
+gtg_ebird <- gtg_zf_filtered %>% 
+  select(checklist_id, observer_id, sampling_event_identifier,
+         scientific_name,
+         observation_count, species_observed, 
+         state_code, locality_id, latitude, longitude,
+         protocol_type, all_species_reported,
+         observation_date, year, day_of_year,
+         time_observations_started, 
+         duration_minutes, effort_distance_km,
+         number_observers)
+write_csv(gtg_ebird, "/data/gtg_ebird_zf.csv", na = "")
+
+btg_ebird <- btg_zf_filtered %>% 
+  select(checklist_id, observer_id, sampling_event_identifier,
+         scientific_name,
+         observation_count, species_observed, 
+         state_code, locality_id, latitude, longitude,
+         protocol_type, all_species_reported,
+         observation_date, year, day_of_year,
+         time_observations_started, 
+         duration_minutes, effort_distance_km,
+         number_observers)
+write_csv(btg_ebird, "/data/btg_ebird_zf.csv", na = "")
+```
+
+
+## Calculating Bioclimatic Variables
+
+We extracted the minimum and maximum temperatures and precipitation values from the monthly climate zip files to create climate rasters. We used the **biovars** function to calculate the 19 bioclimatic variables from these rasters. We calculated the variables for both 1970-1979 and 2010-2018 to create two sets of bioclimatic variables. The current time period was missing one year (2019) because WorldClim currently only has data available up to 2018.
+
+```{r, eval = FALSE}
+
+# get study extent
+studyExtent <- extent(c(-125, -44, 7, 50))
+
+# load monthly tmin, tmax, and precip data
+clim_extract <- function(var, year){
+  # get file names
+  files <- paste("/vsizip/data/env/monthly_clim",
+                 "/wc2.1_2.5m_", var, "_2010-2018.zip/",
+                 "wc2.1_2.5m_", var, "_", year, "-",
+                 c(rep(0, 9), 1, 1 ,1), c(1:9, 0, 1, 2), ".tif", sep="")
+  # stack files into one rasterStack
+  varStack <- stack(files)
+  # crop files to study extent
+  varStack.crop <- crop(varStack, studyExtent)
+  return(varStack.crop)
+}
+
+bioclim_list <- list()
+
+for(y in 2010:2018){
+
+tminy <- clim_extract("tmin", y)
+tmaxy <- clim_extract("tmax", y)
+precy <- clim_extract("prec", y)
+
+# combine into bioclim variables
+bioclimy <- biovars(precy, tminy, tmaxy)
+
+bioclim_list <- append(bioclim_list, bioclimy)
+}
+
+# find average across years
+bioclim_mean <- (bioclim_list[[1]] + bioclim_list[[2]] + bioclim_list[[3]] + 
+  bioclim_list[[4]] + bioclim_list[[5]] + bioclim_list[[6]] + bioclim_list[[7]] + 
+  bioclim_list[[8]] + bioclim_list[[9]])/9
+
+names(bioclim_mean) <- names(bioclim_list[[1]])
+
+writeRaster(bioclim_mean, filename = "data/env/clim2019.tif")
+
+# repeat for the 1970s
+
+clim_extract2 <- function(var, year){
+  # get file names
+  files <- paste("/vsizip/data/env/monthly_clim",
+                 "/wc2.1_2.5m_", var, "_1970-1979.zip/",
+                 "wc2.1_2.5m_", var, "_", year, "-",
+                 c(rep(0, 9), 1, 1 ,1), c(1:9, 0, 1, 2), ".tif", sep="")
+  # stack files into one rasterStack
+  varStack <- stack(files)
+  # crop files to study extent
+  varStack.crop <- crop(varStack, studyExtent)
+  return(varStack.crop)
+}
+
+bioclim_list2 <- list()
+
+for(y in 1970:1979){
+  
+  tminy <- clim_extract2("tmin", y)
+  tmaxy <- clim_extract2("tmax", y)
+  precy <- clim_extract2("prec", y)
+  
+  # combine into bioclim variables
+  bioclimy <- biovars(precy, tminy, tmaxy)
+  
+  bioclim_list2 <- append(bioclim_list2, bioclimy)
+}
+
+# find average across years
+bioclim_mean2 <- (bioclim_list2[[1]] + bioclim_list2[[2]] + bioclim_list2[[3]] + 
+                   bioclim_list2[[4]] + bioclim_list2[[5]] + bioclim_list2[[6]] + 
+                    bioclim_list2[[7]] + 
+                   bioclim_list2[[8]] + bioclim_list2[[9]] + bioclim_list2[[10]])/10
+
+names(bioclim_mean2) <- names(bioclim_list2[[1]])
+
+writeRaster(bioclim_mean2, filename = "data/env/clim1979.tif")
+```
+
+
+## Reformating Elevation Data
+
+The elevation data was provided in a .grd format and needs to be converted to a .tif file for easy use. 
+
+```{r, eval = FALSE}
+setwd("data/env/elevation/median")
+gdalbuildvrt(gdalfile = "*.tif", # uses all tiffs in the current folder
+             output.vrt = "elev.vrt")
+
+# copy the dem.vrt file into an actual raster file
+gdal_translate(src_dataset = "elev.vrt", 
+               dst_dataset = "elev.tif", 
+               output_Raster = FALSE, # returns the raster as Raster*Object
+               options = c("BIGTIFF=YES"))
+
+```
+
+## Combining Land Cover Data
+
+We lowered the resolution of the NLCD maps to match the historic backcast land cover maps and matched the numbers used to encode the different land cover classes.
+
+```{r, eval = FALSE}
+lc_2011 <- raster(paste0("/vsizip/data/env/NLCD_2011_Land_Cover_L48_20190424.zip",
+                         "/NLCD_2011_Land_Cover_L48_20190424.img"))
+lc_2013 <- raster(paste0("/vsizip/data/env/NLCD_2013_Land_Cover_L48_20190424.zip",
+                         "/NLCD_2013_Land_Cover_L48_20190424.img"))
+lc_2016 <- raster(paste0("/vsizip/data/env/NLCD_2016_Land_Cover_L48_20190424.zip",
+                         "/NLCD_2016_Land_Cover_L48_20190424.img"))
+lc_2019 <- raster(paste0("/vsizip/data/env/nlcd_2019_land_cover_l48_20210604.zip",
+                         "/nlcd_2019_land_cover_l48_20210604.img"))
+
+
+
+map.agg <- function(newMap, ...){
+
+newMap[newMap == 11] <- 1 # class 1 is water
+newMap[newMap %in% c(21, 22, 23, 24)] <- 2 # class 2 is urban
+newMap[newMap == 31] <- 7 # class 7 is barren
+newMap[newMap == 41] <- 8 # class 8 is deciduous forest
+newMap[newMap == 42] <- 9 # class 9 is evergreen forest
+newMap[newMap == 43] <- 10 # class 10 is mixed forest
+newMap[newMap == 71] <- 11 # class 11 is grassland
+newMap[newMap == 12] <- 17 # class 17 is ice and snow
+newMap[newMap == 52] <- 12 # class 12 is shrubland
+newMap[newMap == 82] <- 13 # class 13 is cultivated crops
+newMap[newMap == 81] <- 14 # class 14 is pasture
+newMap[newMap == 95] <- 15 # class 15 is herbaceous wetland
+newMap[newMap == 90] <- 16 # class 16 is woody wetland
+modal(newMap)
+}
+
+agg.2011 <- aggregate(lc_2011, fact = 8, fun = map.agg)
+agg.2013 <- aggregate(lc_2013, fact = 8, fun = map.agg)
+agg.2016 <- aggregate(lc_2016, fact = 8, fun = map.agg)
+agg.2019 <- aggregate(lc_2019, fact = 8, fun = map.agg)
+
+lc_modern <- stack(agg.2011, agg.2013, agg.2016, agg.2019)
+
+writeRaster(lc_modern, file = "data/env/landcover2010s_20220304.tif")
+
+# combine the 1970-1979 land cover data into one file
+
+landcover70 <- list.files("data/env/CONUS/", full.names = TRUE) %>% stack()
+
+landcover70[landcover70 == 6] <- 7 # combine the two barren land 
+                                    # cover classes (barren and mining)
+
+# save data
+writeRaster(landcover70, filename = "data/env/landcover70.tif")
+```
+
+
+## Create Checklist Neighborhoods and Base Raster
+
+To account for spatial precision in the eBird data, we created a neighborhood surrounding every eBird checklists, and we summarized the environmental data within each neighborhood. We used the neighborhood size to set the resolution for our base raster that all predictions surfaces (surfaces containing all environmental variables) were projected onto. We modified code from sections 3.3 and 3.4 of Best Practices for Using eBird Data (Strimas-Mackey et al. 2020) for this step. Based on recommendations from the Best Practices for Using eBird Data, we used a 5 by 5 cell size for our land cover maps (which are 2.5 x 2.5 km, the same as MODIS maps).
+
+```{r, eval = FALSE}
+## create prediction surface base raster
+# base raster made from blank version of the land cover raster
+landcover <- landcover70[1]
+r <- landcover
+# set cell size
+radius <- 5 * ceiling(max(res(landcover))) / 2
+agg_factor <- round(2 * radius / res(landcover))
+
+r <- aggregate(r, agg_factor)
+
+r[r != 0] <- 1
+r[r == 0] <- NA
+r <- trim(r)
+
+# save base raster
+writeRaster(r, filename = "/data/env/prediction-surface.tif")
+
+neighborhood_radius <- radius
+
+# set extents
+coords <- data.frame(x = c(-8900000,-7000000,-7000000,-8900000),
+                     y = c(1800000,1800000,2800000,2800000))
+p <- Polygon(coords)
+spatial_p <- SpatialPolygons(list(Polygons(list(p),1)))
+r_mask <- mask(r,spatial_p, inverse=TRUE)
+
+# get cell centers and create neighborhoods
+r_centers <- rasterToPoints(r_mask, spatial = TRUE) %>% 
+  st_as_sf() %>% 
+  transmute(id = row_number())
+r_cells <- st_buffer(r_centers, dist = neighborhood_radius)
+
+save(r_centers,r_cells, file = "/data/env/r_centers_cells.rdata")
+```
+
+## Calculate Distance to Water
+
+To efficiently calculate the distance from every cell in our prediction surface to either a body of freshwater or the coast, we combined the spatial features for these bodies of water from natural earth and calculated the euclidean distance between every cell and every point along the water features. This calculation functioned well for the coast spatial feature, because it is a single curve, but was time intensive for the lake and river spatial features. To improve efficiency, we created a function that crops the lake a river features to the maximum radius that any water feature is to a prediction surface cell (205 km) based on previous iterations. After calculating to distance to water for each cell, we converted these distances to rasters for easier construction of the later complete prediction surface.
+
+```{r, eval = FALSE}
+# load the natural earth water feature data
+
+# River, lake, and coastline data
+ne_river <- read_sf(paste0("data/env/natural_earth/",
+                           "ne_10m_rivers_lake_centerlines/",
+                           "ne_10m_rivers_lake_centerlines.shp"))
+
+ne_lake <- read_sf(paste0("data/env/natural_earth/",
+                   "ne_10m_lakes/ne_10m_lakes.shp"))
+
+ne_coast <- read_sf(paste0("data/env/natural_earth/",
+                    "ne_10m_coastline/ne_10m_coastline.shp"))
+
+# added detail for lakes and rivers in North America
+ne_lake_NA <- read_sf(paste0("data/env/natural_earth/",
+                             "ne_10m_lakes_north_america/",
+                             "ne_10m_lakes_north_america.shp"))
+
+ne_river_NA <- read_sf(paste0("data/env/natural_earth/",
+                       "ne_10m_rivers_north_america/ne_10m_rivers_north_america.shp"))
+
+# river and lakes data
+ne_river_lake <- dplyr::select(ne_river, featurecla, scalerank, geometry) %>% 
+  rbind(dplyr::select(ne_lake, featurecla, scalerank, geometry)) %>% 
+  rbind(dplyr::select(ne_lake_NA, featurecla, scalerank, geometry)) %>%
+  rbind(dplyr::select(ne_river_NA, featurecla, scalerank, geometry))
+
+# crop data to only study area (North America, continental US)
+# xmin = -125, ymin = 25, xmax = -67, ymax = 49
+ne_river_lake <- st_crop(ne_river_lake, c(xmin = -125, ymin =  25,
+                                          xmax = -67,  ymax =  49))
+
+ne_coast <- st_crop(ne_coast, c(xmin = -125, ymin =  25,
+                                xmax = -67,  ymax =  49))
+
+# transform feature data to match raster
+ne_coast <- st_transform(ne_coast, crs = crs(r))
+ne_river_lake <- st_transform(ne_river_lake, crs = crs(r))
+
+r_centers <- st_transform(r_centers, crs = crs(r))
+
+# cast water features from multipolygons into multilines
+ne_coast <- st_cast(ne_coast, "MULTILINESTRING")
+ne_river_lake <- st_cast(ne_river_lake, "MULTILINESTRING")
+
+# create function for extracting the minimum distance
+min_dist <- function(r_pt, ne, radius){
+  # get point location
+  coords <- st_coordinates(r_pt)
+  x <- coords[1]
+  y <- coords[2]
+  r_pt <- st_sfc(r_pt, crs = st_crs(ne))
+  
+  # crop natural earth object to within radius
+  ne_crop <- st_crop(ne, c(xmin = x - radius, xmax = x + radius,
+                           ymin = y - radius, ymax = y + radius))
+  
+  
+  # calculate distance
+  dist_pt <- st_distance(ne_crop, r_pt)
+  
+  return(min(dist_pt) %>% as.numeric())
+}
+
+# get geometry of center points
+r_geometry <- st_geometry(r_centers)
+
+# calculate distance to rivers or lakes
+river_lake_dist <- lapply(r_geometry, function(x) 
+  min_dist(x, ne = ne_river_lake, radius = 205*1000))
+
+# calculate distance to coasts (don't use function)
+coast_dist <- dist_pt <- st_distance(ne_coast, r_geometry)
+
+total_dist <- data.frame(id = r_centers$id, fresh = unlist(river_lake_dist),
+                         coast = unlist(coast_dist))
+
+# combine into a data frame
+total_dist <- mutate(total_dist, total = pmin(fresh, coast))
+
+
+## rasterize the distance to water
+
+# create spacial object of water distance
+water_sf <- r_centers
+water_sf$coast <- water_dist$coast
+water_sf$fresh <- water_dist$fresh
+
+# rasterize
+freshRaster <- rasterize(water_sf, r, field = "fresh")
+coastRaster <- rasterize(water_sf, r, field = "coast")
+
+waterStack <- stack(freshRaster, coastRaster)
+writeRaster(waterStack, file = "data/env/natural_earth/split_water_dist_raster.tif")
+```
+
+## Create Checklist Range Boundaries
+
+We defined the checklist range boundaries as a 600km buffer surrounding all observations of a species within a time period to capture all environments within dispersal distances of the GTGR and BTGR. We also restricted our habitat suitability predictions to these ranges. Here we create the 600 km buffer and save the localities of all observation points within that buffer.
+
+```{r, eval = FALSE}
+## BTGR
+#load data
+btg_ebird_zf <- read_csv("data/eBird/btg_ebird_zf.csv") %>% data.frame()
+
+# filter for 2010-2019 observations and id is in lc_checklists
+btg_10_19 <- filter(btg_ebird_zf, year>=2010, year<=2019)
+
+# filter for presence only
+btg_pres <- filter(btg_10_19, species_observed == TRUE)
+
+# get only unique locations
+btg_pres_unique <- btg_pres[!duplicated(btg_pres$locality_id), 
+                            c("locality_id", "latitude", "longitude")]
+
+btg_10_19_unique <- btg_10_19[!duplicated(btg_10_19$locality_id), 
+                             c("locality_id", "latitude", "longitude")]
+
+# remove outlier point for btg that is far outside of recognized species range
+btg_pres_unique <- filter(btg_pres_unique, locality_id != "L736489")
+
+# get raster for surface
+r <- raster("data/env/prediction-surface.tif")
+
+# convert presence data to sf
+btg_pts <- btg_pres_unique %>%  
+  st_as_sf(coords = c("longitude","latitude"), crs = 4326) %>%
+  st_transform(crs = proj4string(r))
+
+btg_pts <- st_crop(btg_pts, extent(r))
+
+# convert observations to sf for background points
+bg_pts <- btg_10_19_unique %>%  
+  st_as_sf(coords = c("longitude","latitude"), crs = 4326) %>%
+  st_transform(crs = proj4string(r))
+
+# create 600km buffer around the presence points
+btg_cells <- st_buffer(btg_pts, 
+                       dist = 240 * ceiling(max(res(r))) / 2)
+
+# combine buffer zones into one object
+btg_range <- st_union(btg_cells)
+
+# filter background points for those within the range
+bg_filtered <- st_intersection(bg_pts, btg_range)
+
+# filter background points for those within the range
+habitat_filtered <- filter(btg_10_19, locality_id %in% bg_filtered$locality_id)
+
+habitat_filtered <- dplyr::select(habitat_filtered, checklist_id, locality_id, year)
+
+write_csv(habitat_filtered, file = "data/env/habitat_checklist_btg.csv")
+
+# save species range
+save(btg_range, file = "data/env/btg_range.rdata")
+
+## GTGR
+#load data
+gtg_ebird_zf <- read_csv("data/eBird/gtg_ebird_zf.csv") %>% data.frame()
+
+# filter for 2010-2019 observations and id is in lc_checklists
+gtg_10_19 <- filter(gtg_ebird_zf, year >= 2010, year <= 2019, grepl("US-", state_code))
+
+# filter for presence only
+gtg_pres <- filter(gtg_10_19, species_observed == TRUE)
+
+# get only unique locations
+gtg_pres_unique <- gtg_pres[!duplicated(gtg_pres$locality_id), 
+                            c("locality_id", "latitude", "longitude")]
+
+gtg_10_19_unique <- gtg_10_19[!duplicated(gtg_10_19$locality_id), 
+                             c("locality_id", "latitude", "longitude")]
+
+# convert presence data to sf
+gtg_pts <- gtg_pres_unique %>%  
+  st_as_sf(coords = c("longitude","latitude"), crs = 4326) %>%
+  st_transform(crs = proj4string(r))
+
+gtg_pts <- st_crop(gtg_pts, extent(r))
+
+# convert observations to sf for background points
+bg_pts <- gtg_10_19_unique %>%  
+  st_as_sf(coords = c("longitude", "latitude"), crs = 4326) %>%
+  st_transform(crs = proj4string(r))
+
+# create 600km buffer around the presence points
+gtg_cells <- st_buffer(gtg_pts, 
+                       dist = 240 * ceiling(max(res(r))) / 2)
+
+# combine buffer zones into one object
+gtg_range <- st_union(gtg_cells)
+
+# filter background points for those within the range
+bg_filtered <- st_intersection(bg_pts, gtg_range)
+
+# filter background points for those within the range
+habitat_filtered <- filter(gtg_10_19, locality_id %in% bg_filtered$locality_id)
+
+habitat_filtered <- dplyr::select(habitat_filtered, checklist_id, locality_id, year)
+
+write_csv(habitat_filtered, file = "data/env/habitat_checklist_gtg.csv")
+
+# save species range
+save(gtg_range, file = "data/env/gtg_range.rdata")
+
+### repeat for the 1970s dataset
+## BTGR
+
+# filter for 1968-1977 observations
+btg_70_79 <- filter(btg_ebird_zf, year >= 1970, year <= 1979, grepl("US-", state_code))
+
+# filter for presence only
+btg_pres <- filter(btg_70_79, species_observed == TRUE)
+
+# get only unique locations
+btg_pres_unique <- btg_pres[!duplicated(btg_pres$locality_id), 
+                            c("locality_id", "latitude", "longitude")]
+
+btg_70_79_unique <- btg_70_79[!duplicated(btg_70_79$locality_id), 
+                             c("locality_id", "latitude", "longitude")]
+
+# convert presence data to sf
+btg_pts <- btg_pres_unique %>%  
+  st_as_sf(coords = c("longitude", "latitude"), crs = 4326) %>%
+  st_transform(crs = proj4string(r))
+
+btg_pts <- st_crop(btg_pts, extent(r))
+
+# convert observations to sf for background points
+bg_pts <- btg_70_79_unique %>%  
+  st_as_sf(coords = c("longitude", "latitude"), crs = 4326) %>%
+  st_transform(crs = proj4string(r))
+
+# create 600km buffer around the presence points
+btg_cells <- st_buffer(btg_pts, 
+                       dist = 240 * ceiling(max(res(r))) / 2)
+
+# combine buffer zones into one object
+btg_range <- st_union(btg_cells)
+
+# filter background points for those within the range
+bg_filtered <- st_intersection(bg_pts, btg_range)
+
+# filter background points for those within the range
+habitat_filtered <- filter(btg_70_79, locality_id %in% bg_filtered$locality_id)
+
+habitat_filtered <- dplyr::select(habitat_filtered, checklist_id, locality_id, year)
+
+write_csv(habitat_filtered, file = "data/env/habitat_checklist1979_btg.csv")
+
+# save species range
+save(btg_range, file = "data/env/btg_range1979.rdata")
+
+## GTGR
+# filter for 1970-1979 observations, and are in the US
+gtg_70_79 <- filter(gtg_ebird_zf, year >= 1970, year <= 1979, grepl("US-", state_code))
+
+# filter for presence only
+gtg_pres <- filter(gtg_70_79, species_observed == TRUE)
+
+# get only unique locations
+gtg_pres_unique <- gtg_pres[!duplicated(gtg_pres$locality_id), 
+                            c("locality_id", "latitude", "longitude")]
+
+gtg_70_79_unique <- gtg_70_79[!duplicated(gtg_70_79$locality_id), 
+                             c("locality_id", "latitude", "longitude")]
+
+# get raster for surface
+r <- raster("data/env/prediction-surface.tif")
+
+# convert presence data to sf
+gtg_pts <- gtg_pres_unique %>%  
+  st_as_sf(coords = c("longitude", "latitude"), crs = 4326) %>%
+  st_transform(crs = proj4string(r))
+
+gtg_pts <- st_crop(gtg_pts, extent(r))
+
+# convert observations to sf for background points
+bg_pts <- gtg_70_79_unique %>%  
+  st_as_sf(coords = c("longitude", "latitude"), crs = 4326) %>%
+  st_transform(crs = proj4string(r))
+
+# create 600km buffer around the presence points
+gtg_cells <- st_buffer(gtg_pts, 
+                       dist = 240 * ceiling(max(res(r))) / 2)
+
+# combine buffer zones into one object
+gtg_range <- st_union(gtg_cells)
+
+# filter background points for those within the range
+bg_filtered <- st_intersection(bg_pts, gtg_range)
+
+# filter background points for those within the range
+habitat_filtered <- filter(gtg_70_79, locality_id %in% bg_filtered$locality_id) %>%
+  dplyr::select(checklist_id, locality_id) %>% data.frame()
+
+write_csv(habitat_filtered, file = "data/env/habitat_checklist1979_gtg.csv")
+
+# save species range
+save(gtg_range, file = "data/env/gtg_range1979.rdata")
+
+```
+
+
+## Nest eBird Data
+
+We nested the eBird data by year to facilitate extracting year-matched land cover data. For all other environmental data, we created a no-year nested version, and used similar code for extraction. The code in this section was modified from section 3.3 of Strimas-Mackey et al. 2020.
+
+```{r, eval = FALSE}
+# load ebird locations, it doesn't matter the species here
+ebird_buff <- read_csv("data/eBird/gtg_ebird_zf.csv") %>% data.frame()
+
+# 2010-2019 data
+# get species ranges
+gtg_checklist <- read_csv("data/env/habitat_checklist_gtg.csv") %>% data.frame()
+btg_checklist <- read_csv("data/env/habitat_checklist_btg.csv") %>% data.frame()
+
+# get locations in either species range
+ebird_checklists <- filter(ebird_buff, checklist_id %in% gtg_checklist$checklist_id | 
+                             checklist_id %in% btg_checklist$checklist_id)
+
+neighborhood_radius <- 1250
+max_lc_year <- 1979
+
+# convert checklists into spatial points
+ebird_buff_nest <- ebird_checklists %>%
+  distinct(year = format(observation_date, "%Y"),
+           locality_id, latitude, longitude) %>%
+  mutate(year_lc = paste0("y", year)) %>% 
+  # convert to spatial features
+  st_as_sf(coords = c("longitude", "latitude"), crs = 4326) %>% 
+  # transform to land cover projection
+  st_transform(crs = projection(landcover)) %>% 
+  # buffer to create neighborhood around each point
+  st_buffer(dist = neighborhood_radius) %>% 
+  # nest by year
+  nest(data = c(year, locality_id, geometry))
+
+# now repeat without storing year information
+ebird_buff_noyear <- ebird_checklists %>% 
+  distinct(locality_id, latitude, longitude) %>% 
+  st_as_sf(coords = c("longitude", "latitude"), crs = 4326) %>% 
+  st_transform(crs = projection(landcover)) %>% 
+  st_buffer(dist = neighborhood_radius)
+
+# save results
+save(ebird_buff_nest, ebird_buff_noyear, file = "data/eBird/ebird_buff.rdata")
+
+
+# 1970-1979 data
+# get species ranges
+gtg_checklist <- read_csv("data/env/habitat_checklist1979_gtg.csv") %>% data.frame()
+btg_checklist <- read_csv("data/env/habitat_checklist1979_btg.csv") %>% data.frame()
+
+# get locations in either species range
+ebird_checklists <- filter(ebird_buff, checklist_id %in% gtg_checklist$checklist_id | 
+                             checklist_id %in% btg_checklist$checklist_id)
+
+neighborhood_radius <- 1250
+max_lc_year <- 1979
+
+# convert checklists into spatial points
+ebird_buff_nest <- ebird_checklists %>%
+  distinct(year = format(observation_date, "%Y"),
+           locality_id, latitude, longitude) %>%
+  mutate(year_lc = paste0("y", year)) %>% 
+  # convert to spatial features
+  st_as_sf(coords = c("longitude", "latitude"), crs = 4326) %>% 
+  # transform to land cover projection
+  st_transform(crs = projection(landcover)) %>% 
+  # buffer to create neighborhood around each point
+  st_buffer(dist = neighborhood_radius) %>% 
+  # nest by year
+  nest(data = c(year, locality_id, geometry))
+
+# now repeat without storing year information
+ebird_buff_noyear <- ebird_checklists %>% 
+  distinct(locality_id, latitude, longitude) %>% 
+  st_as_sf(coords = c("longitude", "latitude"), crs = 4326) %>% 
+  st_transform(crs = projection(landcover)) %>% 
+  st_buffer(dist = neighborhood_radius)
+
+# save results
+save(ebird_buff_nest, ebird_buff_noyear, file = "data/eBird/ebird_buff70.rdata")
+
+```
+
+## Create Prediction Surface and Habitat Checklist
+
+The prediction surface was a collection of points that contained all required environmental data for each point that we will predict habitat suitability for. We created our species distribution models using both the prediction surface and the habitat checklist (a similar list with data for all checklists that we will use in our models). Here we modified code from Strimas-Mackey et al. 2020 sections 3.4 and 3.5 to extract environmental data for both all prediction surface points and all habitat checklist points. After extracting all the data we combined these datasets into a prediction surface and habitat checklist for each species and time period.
+
+### Climate
+
+```{r, eval = FALSE}
+## 2010-2019
+# load climate data
+clim <- stack("data/env/clim2019.tif")
+names(clim) <- paste("bio", 1:19, sep="")
+
+# load landcover data as base raster
+landcover <- stack("data/env/landcover2010s.tif")
+
+clim <- clim %>% 
+  projectRaster(crs = projection(landcover)) %>%
+  crop(extent(landcover))
+
+# load ebird locations
+load("data/eBird/ebird_buff.rdata")
+
+# filter for entries within ranges
+gtg_range <- read_csv("data/env/habitat_checklist_gtg.csv")
+btg_range <- read_csv("data/env/habitat_checklist_btg.csv")
+
+
+ebird_buff_noyear_filtered <- ebird_buff_noyear %>% 
+  filter(locality_id %in% gtg_range$locality_id | 
+           locality_id %in% btg_range$locality_id) 
+
+
+locs <- st_set_geometry(ebird_buff_noyear_filtered, NULL) %>% 
+  dplyr::mutate(id = row_number())
+
+clim_checklists <- exact_extract(clim, ebird_buff_noyear_filtered, progress = FALSE) %>%
+  map_dfr(~ tibble(bio1 = mean(.$bio1, na.rm = TRUE),
+                   bio2 = mean(.$bio2, na.rm = TRUE),
+                   bio3 = mean(.$bio3, na.rm = TRUE),
+                   bio4 = mean(.$bio4, na.rm = TRUE),
+                   bio5 = mean(.$bio5, na.rm = TRUE),
+                   bio6 = mean(.$bio6, na.rm = TRUE),
+                   bio7 = mean(.$bio7, na.rm = TRUE),
+                   bio8 = mean(.$bio8, na.rm = TRUE),
+                   bio9 = mean(.$bio9, na.rm = TRUE),
+                   bio10 = mean(.$bio10, na.rm = TRUE),
+                   bio11 = mean(.$bio11, na.rm = TRUE),
+                   bio12 = mean(.$bio12, na.rm = TRUE),
+                   bio13 = mean(.$bio13, na.rm = TRUE),
+                   bio14 = mean(.$bio14, na.rm = TRUE),
+                   bio15 = mean(.$bio15, na.rm = TRUE),
+                   bio16 = mean(.$bio16, na.rm = TRUE),
+                   bio17 = mean(.$bio17, na.rm = TRUE),
+                   bio18 = mean(.$bio18, na.rm = TRUE),
+                   bio19 = mean(.$bio19, na.rm = TRUE))) %>% 
+  # join to lookup table to get locality_id
+  bind_cols(locs, .)
+
+write_csv(clim_checklists, "data/env/clim_location2019.csv")
+
+load("data/env/r_centers_cells.rdata")
+
+# gather climate data at checklist locations
+clim_pred <- exact_extract(clim, r_cells, progress = FALSE) %>%
+  map_dfr(~ tibble(bio1 = mean(.$bio1, na.rm = TRUE),
+                   bio2 = mean(.$bio2, na.rm = TRUE),
+                   bio3 = mean(.$bio3, na.rm = TRUE),
+                   bio4 = mean(.$bio4, na.rm = TRUE),
+                   bio5 = mean(.$bio5, na.rm = TRUE),
+                   bio6 = mean(.$bio6, na.rm = TRUE),
+                   bio7 = mean(.$bio7, na.rm = TRUE),
+                   bio8 = mean(.$bio8, na.rm = TRUE),
+                   bio9 = mean(.$bio9, na.rm = TRUE),
+                   bio10 = mean(.$bio10, na.rm = TRUE),
+                   bio11 = mean(.$bio11, na.rm = TRUE),
+                   bio12 = mean(.$bio12, na.rm = TRUE),
+                   bio13 = mean(.$bio13, na.rm = TRUE),
+                   bio14 = mean(.$bio14, na.rm = TRUE),
+                   bio15 = mean(.$bio15, na.rm = TRUE),
+                   bio16 = mean(.$bio16, na.rm = TRUE),
+                   bio17 = mean(.$bio17, na.rm = TRUE),
+                   bio18 = mean(.$bio18, na.rm = TRUE),
+                   bio19 = mean(.$bio19, na.rm = TRUE))) %>% 
+  # join to lookup table to get locality_id
+  bind_cols(st_drop_geometry(r_cells), .)
+
+write_csv(clim_pred, "data/env/clim_prediction_surface2019.csv")
+
+## 1979-2019
+
+# climate data
+clim <- stack("data/env/clim1979.tif")
+names(clim) <- paste("bio", 1:19, sep="")
+
+# landcover data as base raster
+landcover <- stack("data/env/landcover70.tif")
+
+clim <- clim %>% 
+  projectRaster(crs = projection(landcover)) %>%
+  crop(extent(landcover))
+
+# load ebird locations
+load("data/eBird/ebird_buff70.rdata")
+
+locs <- st_set_geometry(ebird_buff_noyear, NULL) %>% 
+  dplyr::mutate(id = row_number())
+
+clim_checklists <- exact_extract(clim, ebird_buff_noyear, progress = FALSE) %>%
+  map_dfr(~ tibble(bio1 = mean(.$bio1, na.rm = TRUE),
+                   bio2 = mean(.$bio2, na.rm = TRUE),
+                   bio3 = mean(.$bio3, na.rm = TRUE),
+                   bio4 = mean(.$bio4, na.rm = TRUE),
+                   bio5 = mean(.$bio5, na.rm = TRUE),
+                   bio6 = mean(.$bio6, na.rm = TRUE),
+                   bio7 = mean(.$bio7, na.rm = TRUE),
+                   bio8 = mean(.$bio8, na.rm = TRUE),
+                   bio9 = mean(.$bio9, na.rm = TRUE),
+                   bio10 = mean(.$bio10, na.rm = TRUE),
+                   bio11 = mean(.$bio11, na.rm = TRUE),
+                   bio12 = mean(.$bio12, na.rm = TRUE),
+                   bio13 = mean(.$bio13, na.rm = TRUE),
+                   bio14 = mean(.$bio14, na.rm = TRUE),
+                   bio15 = mean(.$bio15, na.rm = TRUE),
+                   bio16 = mean(.$bio16, na.rm = TRUE),
+                   bio17 = mean(.$bio17, na.rm = TRUE),
+                   bio18 = mean(.$bio18, na.rm = TRUE),
+                   bio19 = mean(.$bio19, na.rm = TRUE))) %>% 
+  # join to lookup table to get locality_id
+  bind_cols(locs, .)
+
+write_csv(clim_checklists, "data/env/clim_location70.csv")
+
+clim_pred <- exact_extract(clim, r_cells, progress = FALSE) %>%
+  map_dfr(~ tibble(bio1 = mean(.$bio1, na.rm = TRUE),
+                   bio2 = mean(.$bio2, na.rm = TRUE),
+                   bio3 = mean(.$bio3, na.rm = TRUE),
+                   bio4 = mean(.$bio4, na.rm = TRUE),
+                   bio5 = mean(.$bio5, na.rm = TRUE),
+                   bio6 = mean(.$bio6, na.rm = TRUE),
+                   bio7 = mean(.$bio7, na.rm = TRUE),
+                   bio8 = mean(.$bio8, na.rm = TRUE),
+                   bio9 = mean(.$bio9, na.rm = TRUE),
+                   bio10 = mean(.$bio10, na.rm = TRUE),
+                   bio11 = mean(.$bio11, na.rm = TRUE),
+                   bio12 = mean(.$bio12, na.rm = TRUE),
+                   bio13 = mean(.$bio13, na.rm = TRUE),
+                   bio14 = mean(.$bio14, na.rm = TRUE),
+                   bio15 = mean(.$bio15, na.rm = TRUE),
+                   bio16 = mean(.$bio16, na.rm = TRUE),
+                   bio17 = mean(.$bio17, na.rm = TRUE),
+                   bio18 = mean(.$bio18, na.rm = TRUE),
+                   bio19 = mean(.$bio19, na.rm = TRUE))) %>% 
+  # join to lookup table to get locality_id
+  bind_cols(st_drop_geometry(r_cells), .)
+
+write_csv(clim_pred, "data/env/clim_prediction_surface70.csv")
+```
+
+### Elevation
+
+```{r, eval = FALSE}
+# load elevation data
+elev <- stack("data/env/elev.tif")
+# set projection 
+proj4string(elev) <- "+proj=longlat +datum=WGS84 +no_defs"
+
+# crop elevation data to the landcover data
+elev1 <- elev %>%
+  projectRaster(crs = projection(landcover)) %>%
+  crop(landcover)
+  
+
+## 2010-2019 data
+
+# load ebird locations
+load("data/eBird/ebird_buff_noyear.rdata")
+
+# filter for entries within ranges
+gtg_range <- read_csv("data/env/habitat_checklist_gtg.csv")
+btg_range <- read_csv("data/env/habitat_checklist_btg.csv")
+
+
+ebird_buff_noyear_filtered <- ebird_buff_noyear %>% 
+  filter(locality_id %in% gtg_range$locality_id | 
+           locality_id %in% btg_range$locality_id) 
+
+
+# get location IDs
+locs <- st_set_geometry(ebird_buff_noyear_filtered, NULL) %>% 
+  dplyr::mutate(id = row_number())
+
+elev_checklists <- exact_extract(elev1, ebird_buff_noyear_filtered, progress = FALSE) %>%
+  map_dfr(~ tibble(elevation_median = mean(.$value, na.rm = TRUE),
+                   elevation_sd = sd(.$value, na.rm = TRUE))) %>% 
+  # join to lookup table to get locality_id
+  bind_cols(locs, .)
+
+write_csv(elev_checklists, "data/env/elev_location2019.csv")
+
+load("data/env/r_centers_cells.rdata")
+
+elev_pred <- exact_extract(elev1, r_cells, progress = FALSE) %>% 
+  map_dfr(~ tibble(elevation_median = mean(.$value, na.rm = TRUE),
+                   elevation_sd = sd(.$value, na.rm = TRUE))) %>% 
+  # join to lookup table to get locality_id
+  bind_cols(st_drop_geometry(r_cells), .)
+
+write_csv(elev_pred, "data/env/elev_prediction_surface2019.csv")
+
+## 1970-1979
+# only need the checklist here because the prediction surface is identical between years
+# load ebird locations
+load("data/eBird/ebird_buff70.rdata")
+
+# get location IDs
+locs <- st_set_geometry(ebird_buff_noyear, NULL) %>% 
+  dplyr::mutate(id = row_number())
+
+elev_checklists <- exact_extract(elev1, ebird_buff_noyear, progress = FALSE) %>%
+  map_dfr(~ tibble(elevation_median = mean(.$value, na.rm = TRUE),
+                   elevation_sd = sd(.$value, na.rm = TRUE))) %>% 
+  # join to lookup table to get locality_id
+  bind_cols(locs, .)
+
+write_csv(elev_checklists, "data/env/elev_location70.csv")
+```
+
+### Land Cover
+
+```{r, eval = FALSE}
+
+## 2010-2019 data
+# load landscape data
+landcover <- stack("data/env/landcover2010s_20220304.tif")
+names(landcover) <- paste("y", c(2011, 2013, 2016, 2019), sep="")
+
+# load ebird locations
+load("data/eBird/ebird_buff.rdata")
+
+# filter for entries within ranges
+gtg_range <- read_csv("data/env/habitat_checklist_gtg.csv")
+btg_range <- read_csv("data/env/habitat_checklist_btg.csv")
+
+ebird_buff_sf_filtered <- ebird_buff_sf_nest %>% 
+  mutate(data = map(data, ~ filter(., paste(year, locality_id) %in% 
+                                     c(paste(gtg_range$year, gtg_range$locality_id), 
+                                       paste(btg_range$year, btg_range$locality_id)))))
+
+year_convert <- c(rep("y2011", 2), rep("y2013", 3), rep("y2016", 3), rep("y2019", 2))
+names(year_convert) <- paste("y", 2010:2019, sep="")
+
+ebird_buff_sf_filtered$year_lc <-year_convert[ebird_buff_sf_filtered$year_lc]
+
+ebird_buff_sf_filtered <- ebird_buff_sf_filtered %>% unnest(cols = data) %>%
+  st_as_sf() %>% st_transform(crs = projection(landcover)) %>%
+  nest(data = c(year, locality_id, geometry))
+
+# create function for extracting the landcover for each neighborhood.
+calculate_pland <- function(yr, regions, lc) {
+  locs <- st_set_geometry(regions, NULL)
+  test <- exact_extract(lc[[yr]], regions, progress = FALSE) %>% 
+    map(~ dplyr::count(., landcover = value)) %>% 
+    tibble(locs, data = .) %>% 
+    unnest(data)
+}
+
+# iterate over all years extracting landcover for all checklists in each
+lc_extract <- ebird_buff_sf_filtered %>% 
+  dplyr::mutate(pland = map2(year_lc, data, calculate_pland, lc = landcover)) %>%
+  dplyr::select(pland) %>%
+  unnest(cols = pland)
+
+pland <- lc_extract %>% 
+  # calculate proportion
+  group_by(locality_id, year) %>% 
+  dplyr::mutate(pland = n / sum(n)) %>% 
+  ungroup() %>% 
+  dplyr::select(-n) %>% 
+  # remove NAs after tallying so pland is relative to total number of cells
+  filter(!is.na(landcover))
+
+
+lc_names <- tibble(landcover = 0:17,
+                   lc_name = c("pland_00_NA", 
+                               "pland_01_water", 
+                               "pland_02_urban", 
+                               "pland_03_NA", 
+                               "pland_04_NA", 
+                               "pland_05_NA",
+                               "pland_07_barren", 
+                               "pland_07_barren", 
+                               "pland_08_deciduous_forest", 
+                               "pland_09_evergreen_forest", 
+                               "pland_10_mixed_forest", 
+                               "pland_11_grassland", 
+                               "pland_12_shrubland", 
+                               "pland_13_cultivated_crops", 
+                               "pland_14_hay_pasture", 
+                               "pland_15_herbaceous_wetland",
+                               "pland_16_woody_wetland",
+                               "pland_17_ice_snow"))
+pland <- pland %>% 
+  inner_join(lc_names, by = "landcover") %>% 
+  dplyr::arrange(landcover) %>% 
+  dplyr::select(-landcover)
+pland <- pland %>% group_by(locality_id, year, lc_name) %>%
+  dplyr::summarize(pland = sum(pland))
+
+# transform to wide format, filling in implicit missing values with 0s%>% 
+pland <- pland %>% 
+  pivot_wider(names_from = lc_name, 
+              values_from = pland, 
+              values_fill = list(pland = 0))
+
+# save
+write_csv(pland, "data/env/pland_location2019_20220305.csv")
+
+
+# extract landcover values within neighborhoods, only needed most recent year
+lc_extract_pred <- landcover[[paste0("y", 2019)]] %>% 
+  exact_extract(r_cells, progress = FALSE) %>% 
+  map(~ dplyr::count(., landcover = value)) %>%
+  tibble(id = r_cells$id, data = .) %>% 
+  unnest(data)
+
+# calculate the percent for each landcover class
+pland_pred <- lc_extract_pred %>% 
+  group_by(id) %>% 
+  dplyr::mutate(pland = n / sum(n)) %>% 
+  ungroup() %>% 
+  dplyr::select(-n) %>% 
+  # remove NAs after tallying so pland is relative to total number of cells
+  filter(!is.na(landcover))
+
+lc_names <- tibble(landcover = 0:17,
+                   lc_name = c("pland_00_NA", 
+                               "pland_01_water", 
+                               "pland_02_urban", 
+                               "pland_03_NA", 
+                               "pland_04_NA", 
+                               "pland_05_NA",
+                               "pland_07_barren", 
+                               "pland_07_barren", 
+                               "pland_08_deciduous_forest", 
+                               "pland_09_evergreen_forest", 
+                               "pland_10_mixed_forest", 
+                               "pland_11_grassland", 
+                               "pland_12_shrubland", 
+                               "pland_13_cultivated_crops", 
+                               "pland_14_hay_pasture", 
+                               "pland_15_herbaceous_wetland",
+                               "pland_16_woody_wetland",
+                               "pland_17_ice_snow"))
+
+# convert names to be more descriptive
+pland_pred <- pland_pred %>% 
+  inner_join(lc_names, by = "landcover") %>% 
+  dplyr::arrange(landcover) %>% 
+  dplyr::select(-landcover)
+
+pland_pred <- pland_pred %>% group_by(id, lc_name) %>%
+  dplyr::summarize(pland = sum(pland))
+
+# transform to wide format, filling in implicit missing values with 0s
+pland_pred <- pland_pred %>% 
+  pivot_wider(names_from = lc_name, 
+              values_from = pland, 
+              values_fill = list(pland = 0)) %>% 
+  dplyr::mutate(year = 2019) %>% 
+  dplyr::select(id, year, everything())
+
+# join in coordinates
+pland_coords <- st_transform(r_centers, crs = 4326) %>% 
+  st_coordinates() %>% 
+  as.data.frame() %>% 
+  cbind(id = r_centers$id, .) %>%
+  dplyr::rename(longitude = X, latitude = Y) %>% 
+  inner_join(pland_pred, by = "id")
+
+write_csv(pland_coords, file = "data/env/pland_prediction-surface2019_20220305.csv")
+
+
+## 1970-1979 data
+# load landscape data
+landcover <- stack("data/env/landcover70.tif")
+names(landcover) <- paste("y", 1970:1979, sep="")
+
+# load ebird locations
+load("data/eBird/ebird_buff70.rdata")
+
+# create function for extracting the landcover for each neighborhood.
+calculate_pland <- function(yr, regions, lc) {
+  locs <- st_set_geometry(regions, NULL)
+  test <- exact_extract(lc[[yr]], regions, progress = FALSE) %>% 
+    map(~ dplyr::count(., landcover = value)) %>% 
+    tibble(locs, data = .) %>% 
+    unnest(data)
+}
+
+# iterate over all years extracting landcover for all checklists in each
+lc_extract <- ebird_buff_nest %>% 
+  dplyr::mutate(pland = map2(year_lc, data, calculate_pland, lc = landcover)) %>%
+  dplyr::select(pland) %>%
+  unnest(cols = pland)
+
+pland <- lc_extract %>% 
+  # calculate proportion
+  group_by(locality_id, year) %>% 
+  dplyr::mutate(pland = n / sum(n)) %>% 
+  ungroup() %>% 
+  dplyr::select(-n) %>% 
+  # remove NAs after tallying so pland is relative to total number of cells
+  filter(!is.na(landcover))
+
+
+lc_names <- tibble(landcover = 0:17,
+                   lc_name = c("pland_00_NA", 
+                               "pland_01_water", 
+                               "pland_02_urban", 
+                               "pland_03_NA", 
+                               "pland_04_NA", 
+                               "pland_05_NA",
+                               "pland_07_barren", 
+                               "pland_07_barren", 
+                               "pland_08_deciduous_forest", 
+                               "pland_09_evergreen_forest", 
+                               "pland_10_mixed_forest", 
+                               "pland_11_grassland", 
+                               "pland_12_shrubland", 
+                               "pland_13_cultivated_crops", 
+                               "pland_14_hay_pasture", 
+                               "pland_15_herbaceous_wetland",
+                               "pland_16_woody_wetland",
+                               "pland_17_ice_snow"))
+pland <- pland %>% 
+  inner_join(lc_names, by = "landcover") %>% 
+  dplyr::arrange(landcover) %>% 
+  dplyr::select(-landcover)
+
+pland <- pland %>% group_by(locality_id, year, lc_name) %>%
+  dplyr::summarize(pland = sum(pland))
+
+# transform to wide format, filling in implicit missing values with 0s%>% 
+pland <- pland %>% 
+  pivot_wider(names_from = lc_name, 
+              values_from = pland, 
+              values_fill = list(pland = 0))
+
+# save
+write_csv(pland, "data/env/pland_location70.csv")
+
+
+# extract landcover values within neighborhoods, only needed most recent year
+lc_extract_pred <- landcover[[paste0("y", 1979)]] %>% 
+  exact_extract(r_cells, progress = FALSE) %>% 
+  map(~ dplyr::count(., landcover = value)) %>%
+  tibble(id = r_cells$id, data = .) %>% 
+  unnest(data)
+
+# calculate the percent for each landcover class
+pland_pred <- lc_extract_pred %>% 
+  group_by(id) %>% 
+  dplyr::mutate(pland = n / sum(n)) %>% 
+  ungroup() %>% 
+  dplyr::select(-n) %>% 
+  # remove NAs after tallying so pland is relative to total number of cells
+  filter(!is.na(landcover))
+
+lc_names <- tibble(landcover = 0:17,
+                   lc_name = c("pland_00_NA", 
+                               "pland_01_water", 
+                               "pland_02_urban", 
+                               "pland_03_NA", 
+                               "pland_04_NA", 
+                               "pland_05_NA",
+                               "pland_07_barren", 
+                               "pland_07_barren", 
+                               "pland_08_deciduous_forest", 
+                               "pland_09_evergreen_forest", 
+                               "pland_10_mixed_forest", 
+                               "pland_11_grassland", 
+                               "pland_12_shrubland", 
+                               "pland_13_cultivated_crops", 
+                               "pland_14_hay_pasture", 
+                               "pland_15_herbaceous_wetland",
+                               "pland_16_woody_wetland",
+                               "pland_17_ice_snow"))
+
+# convert names to be more descriptive
+pland_pred <- pland_pred %>% 
+  inner_join(lc_names, by = "landcover") %>% 
+  dplyr::arrange(landcover) %>% 
+  dplyr::select(-landcover)
+
+pland_pred <- pland_pred %>% group_by(id, lc_name) %>%
+  dplyr::summarize(pland = sum(pland))
+
+# transform to wide format, filling in implicit missing values with 0s
+pland_pred <- pland_pred %>% 
+  pivot_wider(names_from = lc_name, 
+              values_from = pland, 
+              values_fill = list(pland = 0)) %>% 
+  dplyr::mutate(year = 1979) %>% 
+  dplyr::select(id, year, everything())
+
+# join in coordinates
+pland_coords <- st_transform(r_centers, crs = 4326) %>% 
+  st_coordinates() %>% 
+  as.data.frame() %>% 
+  cbind(id = r_centers$id, .) %>%
+  dplyr::rename(longitude = X, latitude = Y) %>% 
+  inner_join(pland_pred, by = "id")
+
+write_csv(pland_coords, file = "data/env/pland_prediction-surface70.csv")
+```
+
+
+### Distance to Water
+
+```{r, eval = FALSE}
+## Distance to water is the same between time periods and is coded to produce one
+## habitat checklist for both time periods
+# load water distance raster
+water_dist <- stack("data/env/natural_earth/split_water_dist_raster.tif")
+names(water_dist) <- c("fresh", "coast")
+
+# get ebird locations
+load("data/eBird/ebird_buff_noyear.rdata")
+
+
+# filter for species ranges
+gtg_range <- read_csv("data/env/habitat_checklist_gtg.csv")
+btg_range <- read_csv("data/env/habitat_checklist_btg.csv")
+
+ebird_buff_noyear_filtered <- ebird_buff_noyear %>% 
+  filter(locality_id %in% gtg_range$locality_id | locality_id %in% btg_range$locality_id)
+
+rm(ebird_buff_noyear)
+
+# get 1970s ebird locations
+load("data/eBird/ebird_buff70.rdata")
+
+# add 1970s locations to 2010s locations to avoid repeating
+ebird_buff_noyear_filtered <- st_transform(ebird_buff_noyear_filtered, 
+                                           crs = crs(ebird_buff_noyear))
+
+ebird_buff_noyear <- rbind(ebird_buff_noyear, ebird_buff_noyear_filtered)
+
+# remove duplicated locations
+ebird_buff_noyear <- ebird_buff_noyear[!duplicated(ebird_buff_noyear$locality_id),]
+
+rm(btg_range, gtg_range, ebird_buff_nest, ebird_buff_noyear_filtered)
+
+locs <- st_set_geometry(ebird_buff_noyear, NULL) %>% 
+    dplyr::mutate(id = row_number())
+  
+water_checklists <- exact_extract(water_dist, ebird_buff_noyear, 
+                                  fun = "mean", progress = FALSE) %>%
+ # join to lookup table to get locality_id
+  bind_cols(locs, .)
+colnames(water_checklists)[3:4] <- c("fresh", "coast")
+
+write_csv(water_checklists, "data/env/natural_earth/water_dist_split_location.csv")
+```
+
+### Combine Environmental Data
+
+```{r, eval = FALSE}
+## 2010-2019
+# load all environmental data and combine into one prediction surface
+lc_pred <- read_csv("data/env/pland_prediction-surface2019_20220305.csv") %>% 
+  data.frame()
+clim_pred <- read_csv("data/env/clim_prediction_surface2019.csv") %>% data.frame()
+elev_pred <- read_csv("data/env/elev_prediction_surface2019.csv") %>% data.frame()
+water_pred <- read_csv("data/env/natural_earth/water_dist_prediction_surface.csv") %>% 
+  data.frame()
+water_pred <- dplyr::select(water_pred, id, fresh, coast)
+
+pred_surface <- inner_join(lc_pred, clim_pred, by = "id")
+pred_surface <- inner_join(pred_surface, elev_pred, by = "id")
+pred_surface <- inner_join(pred_surface, water_pred, by = "id")
+
+write_csv(pred_surface, file = "data/env/full_prediction_surface2019_20220304.csv")
+
+# load all environmental data and combine into one habitat checklist
+lc_checklist <- read_csv("data/env/pland_location2019_20220305.csv") %>% data.frame()
+clim_checklist <- read_csv("data/env/clim_location2019.csv") %>% data.frame()
+elev_checklist <- read_csv("data/env/elev_location2019.csv") %>% data.frame()
+hydro_checklist <- read_csv("data/env/natural_earth/water_dist_split_location.csv") %>% 
+  data.frame()
+hydro_checklist <- filter(hydro_checklist, locality_id %in% elev_checklist$locality_id)
+
+habitat_checklist <- inner_join(lc_checklist, clim_checklist[,c(1,3:21)], 
+                                by="locality_id")
+habitat_checklist <- inner_join(habitat_checklist, 
+                                elev_checklist[,c(1,3:4)],by="locality_id")
+habitat_checklist <- inner_join(habitat_checklist, 
+                                hydro_checklist[,c(1,3:4)],by="locality_id")
+
+# save the full habitat checklist data
+write_csv(habitat_checklist, file="data/env/habitat_checklist2019_20220304.csv")
+
+## 1970-2019
+# load all environmental data and combine into one prediction surface
+lc_pred <- read_csv("data/env/pland_prediction-surface70.csv") %>% data.frame()
+clim_pred <- read_csv("data/env/clim_prediction_surface70.csv") %>% data.frame()
+elev_pred <- read_csv("data/env/elev_prediction_surface70.csv") %>% data.frame()
+water_pred <- read_csv("data/env/natural_earth/water_dist_prediction_surface.csv") %>% 
+  data.frame()
+water_pred <- dplyr::select(water_pred, id, fresh, coast)
+
+pred_surface <- inner_join(lc_pred, clim_pred, by = "id")
+pred_surface <- inner_join(pred_surface, elev_pred, by = "id")
+pred_surface <- inner_join(pred_surface, water_pred, by = "id")
+
+write_csv(pred_surface, file = "data/env/full_prediction_surface70_20210826.csv")
+
+# load all environmental data and combine into one habitat checklist
+lc_checklist <- read_csv("data/env/pland_location70.csv") %>% data.frame()
+clim_checklist <- read_csv("data/env/clim_location70.csv") %>% data.frame()
+elev_checklist <- read_csv("data/env/elev_location70.csv") %>% data.frame()
+hydro_checklist <- read_csv("data/env/natural_earth/water_dist_split_location.csv") %>% 
+  data.frame()
+hydro_checklist <- filter(hydro_checklist, locality_id %in% elev_checklist$locality_id)
+
+habitat_checklist70 <- inner_join(lc_checklist, clim_checklist[,c(1,3:21)], 
+                                  by="locality_id")
+habitat_checklist70 <- inner_join(habitat_checklist70, 
+                                  elev_checklist[,c(1,3:4)],by="locality_id")
+habitat_checklist70 <- inner_join(habitat_checklist70, 
+                                  hydro_checklist[,c(1,3:4)],by="locality_id")
+
+# save the full habitat checklist data
+write_csv(habitat_checklist70, file="data/env/habitat_checklist70_20210826.csv")
+```
+
+# Species Distribution Models
+
+## Model Creation
+
+All species distribution models were created using a random forest approach with the same procedure: geographic subsampling to reduce spatial bias, splitting the data between an 80% train and 20% test dataset, and then creating a balanced random forest model. We repeated this process 10 times for each model to account for the stochasticity caused by the randomized subsampling and splitting. We divided our code between the four species distribution models, but all code chunks share the same process using different input files. The code is modified from sections 4.1, 4.2, 4.3, and 4.4 of Strimas-Mackey et al. 2020.
+
+
+We also checked the variable inflation factor for all climate variables to decide which to exclude from our models due to colinearity.
+
+```{r, eval = FALSE}
+pred_surface <- read_csv("data/env/full_prediction_surface2019_20210813.csv")
+
+pred_env <- dplyr::select(btg_habitat, contains("bio"))
+
+pred_env <- pred_env[complete.cases(pred_env),]
+
+pred_vifcor <- vifcor(pred_env, th = 0.7)
+
+
+# the bioclimatic variables to keep in our models
+#                     Variables       VIF
+#1                         bio2  3.038271
+#2                         bio5  9.301514
+#3                         bio8  5.024765
+#4                         bio9  8.577428
+#5                        bio13  2.699448
+#6                        bio14  6.008735
+#7                        bio19  4.808792
+
+```
+
+### Current BTGR Model
+
+```{r, eval = FALSE}
+set.seed(1567)
+
+# load ebird data
+habitat_checklist <- read_csv("data/env/habitat_checklist2019_20220304.csv") %>% 
+  data.frame()
+
+btg_ebird_zf <- read_csv("data/eBird/btg_ebird_zf.csv") %>% data.frame()
+
+# filter for 2010-2019 observations and id is in lc_checklists
+btg_10_19 <- filter(btg_ebird_zf, year >= 2010, year <= 2019, 
+                    locality_id %in% habitat_checklist$locality_id, 
+                    grepl("US-", state_code))
+
+# combine habitat data and ebird data for full set of data for testing model
+btg_full <- inner_join(btg_10_19, habitat_checklist, by=c("locality_id","year"))
+
+# get data for relevant study area to create model
+btg_locations <- read_csv("data/env/habitat_checklist_btg.csv") %>% data.frame()
+
+btg_habitat <- filter(btg_full, checklist_id %in% btg_locations$checklist_id)
+
+# exclude points with NAs
+btg_habitat <- btg_habitat[complete.cases(btg_habitat), ]
+
+# remember to remove unneeded data frames
+rm(btg_10_19, btg_ebird_zf, btg_locations, btg_full, habitat_checklist)
+
+### Spatiotemporal Subsampling
+# Here I will subsample observations and non-observations separately 
+# across the study area
+
+# generate 5km hexagonal grid cells
+dggs <- dgconstruct(spacing = 5)
+
+# get hexagonal cell id and week number for each checklist
+# will subsample one observation per week per grid cell
+checklist_cell <- btg_habitat %>% 
+  dplyr::mutate(cell = dgGEO_to_SEQNUM(dggs, longitude, latitude)$seqnum,
+                year = year(observation_date),
+                week = week(observation_date))
+
+rm(btg_habitat, dggs)
+
+# create for loop to repeat steps 10 times
+for(i in 1:10){
+  # sample one checklist per grid cell per week
+  # sample detection/non-detection independently 
+  btg_ss <- checklist_cell %>% 
+    group_by(species_observed, year, week, cell) %>% 
+    sample_n(size = 1) %>% 
+    ungroup()
+  
+  # divide data into test and train data
+  btg_split <- btg_ss %>% 
+    # select only the columns to be used in the model
+    dplyr::select(species_observed,
+                  year, day_of_year,
+                  time_observations_started, duration_minutes,
+                  effort_distance_km, number_observers, 
+                  starts_with("pland_"),
+                  -pland_00_NA,
+                  -pland_17_ice_snow,
+                  starts_with("elevation_med"),
+                  fresh, coast,
+                  bio2, bio5, bio8,
+                  bio9, bio13, bio14, bio19) %>%
+    drop_na()
+  # split 80/20
+  btg_split <- btg_split %>% 
+    split(if_else(runif(nrow(.)) <= 0.8, "train", "test"))
+  
+  # calculate proportion of detections for balanced random forest
+  detection_freq <- mean(btg_split$train$species_observed)
+  
+  # Use rangr to run random forest
+  # ranger requires a factor response to do classification
+  btg_split$train$species_observed <- factor(btg_split$train$species_observed)
+  
+  # remove unneeded objects 
+  rm(btg_ss)
+  
+  # grow random forest
+  rf <- ranger(formula =  species_observed ~ ., 
+               data = btg_split$train,
+               num.trees = 1000,
+               mtry = 4,
+               importance = "impurity",
+               probability = TRUE,
+               replace = TRUE, 
+               sample.fraction = c(detection_freq, detection_freq))
+  
+  # save resulting model and data used
+  save(rf, btg_split,
+       file = paste0("results/btg2010_rf_repeat_20220304/btg2010_rf_", 
+                     i, "_20220304.rdata"))
+  # clear memory
+  rm(rf, btg_split, detection_freq)
+}
+
+```
+
+### Current GTGR Model
+
+```{r, eval = FALSE}
+set.seed(1567)
+
+# load ebird data
+habitat_checklist <- read_csv("data/env/habitat_checklist2019_20220304.csv") %>% 
+  data.frame()
+
+gtg_ebird_zf <- read_csv("data/eBird/gtg_ebird_zf.csv") %>% data.frame()
+
+# filter for 2010-2019 observations and id is in lc_checklists
+gtg_10_19 <- filter(gtg_ebird_zf, year>=2010, year<=2019, 
+                    locality_id %in% habitat_checklist$locality_id, 
+                    grepl("US-", state_code))
+
+# combine habitat data and ebird data for full set of data for testing model
+gtg_full <- inner_join(gtg_10_19, habitat_checklist, by=c("locality_id","year"))
+
+# get data for relevant study area to create model
+gtg_locations <- read_csv("data/env/habitat_checklist_gtg.csv") %>% data.frame()
+
+gtg_habitat <- filter(gtg_full, checklist_id %in% gtg_locations$checklist_id)
+
+# exclude points with NAs
+gtg_habitat <- gtg_habitat[complete.cases(gtg_habitat), ]
+
+# remember to remove unneeded data frames
+rm(gtg_10_19, gtg_ebird_zf, gtg_locations, gtg_full, habitat_checklist)
+
+### Spatiotemporal Subsampling
+# Here I will subsample observations and non-observations separately 
+# across the study area
+
+# generate 5km hexagonal grid cells
+dggs <- dgconstruct(spacing = 5)
+
+# get hexagonal cell id and week number for each checklist
+# will subsample one observation per week per grid cell
+checklist_cell <- gtg_habitat %>% 
+  dplyr::mutate(cell = dgGEO_to_SEQNUM(dggs, longitude, latitude)$seqnum,
+                year = year(observation_date),
+                week = week(observation_date))
+
+rm(gtg_habitat, dggs)
+
+# create for loop to repeat steps 10 times
+for(i in 1:10){
+  # sample one checklist per grid cell per week
+  # sample detection/non-detection independently 
+  gtg_ss <- checklist_cell %>% 
+    group_by(species_observed, year, week, cell) %>% 
+    sample_n(size = 1) %>% 
+    ungroup()
+  
+  # divide data into test and train data
+  gtg_split <- gtg_ss %>% 
+    # select only the columns to be used in the model
+    dplyr::select(species_observed,
+                  year, day_of_year,
+                  time_observations_started, duration_minutes,
+                  effort_distance_km, number_observers, 
+                  starts_with("pland_"),
+                  -pland_00_NA,
+                  -pland_17_ice_snow,
+                  starts_with("elevation_med"),
+                  fresh, coast,
+                  bio2, bio5, bio8,
+                  bio9, bio13, bio14, bio19) %>%
+    drop_na()
+  # split 80/20
+  gtg_split <- gtg_split %>% 
+    split(if_else(runif(nrow(.)) <= 0.8, "train", "test"))
+  
+  # calculate proportion of detections for balanced random forest
+  detection_freq <- mean(gtg_split$train$species_observed)
+  
+  # Use rangr to run random forest
+  # ranger requires a factor response to do classification
+  gtg_split$train$species_observed <- factor(gtg_split$train$species_observed)
+  
+  # remove unneeded objects 
+  rm(gtg_ss)
+  
+  # grow random forest
+  rf <- ranger(formula =  species_observed ~ ., 
+               data = gtg_split$train,
+               num.trees = 1000,
+               mtry = 4,
+               importance = "impurity",
+               probability = TRUE,
+               replace = TRUE, 
+               sample.fraction = c(detection_freq, detection_freq))
+  
+  # save resulting model and data used
+  save(rf, gtg_split,
+       file = paste0("results/gtg2010_rf_repeat_20220304/gtg2010_rf_",
+                     i, "_20220304.rdata"))
+  # clear memory
+  rm(rf, gtg_split, detection_freq)
+}
+```
+
+### Historic BTGR Model
+
+```{r, eval = FALSE}
+set.seed(1567)
+
+# load ebird data
+habitat_checklist <- read_csv("data/env/habitat_checklist70_20210826.csv") %>% 
+  data.frame()
+
+btg_ebird_zf <- read_csv("data/eBird/btg_ebird_zf.csv") %>% data.frame()
+
+# filter for 1970-1979 observations and id is in lc_checklists
+btg_70_79 <- filter(btg_ebird_zf, year>=1970, year<=1979, 
+                    locality_id %in% habitat_checklist$locality_id, 
+                    grepl("US-", state_code))
+
+# combine habitat data and ebird data for full set of data for testing model
+btg_full <- inner_join(btg_70_79, habitat_checklist, by=c("locality_id","year"))
+
+# get data for relevant study area to create model
+btg_locations <- read_csv("data/env/habitat_checklist1979_btg.csv") %>% data.frame()
+
+btg_habitat <- filter(btg_full, checklist_id %in% btg_locations$checklist_id)
+
+# exclude points with NAs
+btg_habitat <- btg_habitat[complete.cases(btg_habitat), ]
+
+# remember to remove unneeded data frames
+rm(btg_70_79, btg_ebird_zf, btg_locations, btg_full, habitat_checklist)
+
+### Spatiotemporal Subsampling
+# Here I will subsample observations and non-observations separately 
+# across the study area
+
+# generate 5km hexagonal grid cells
+dggs <- dgconstruct(spacing = 5)
+
+# get hexagonal cell id and week number for each checklist
+# will subsample one observation per week per grid cell
+checklist_cell <- btg_habitat %>% 
+  dplyr::mutate(cell = dgGEO_to_SEQNUM(dggs, longitude, latitude)$seqnum,
+                year = year(observation_date),
+                week = week(observation_date))
+
+rm(btg_habitat, dggs)
+
+# create for loop to repeat steps 10 times
+for(i in 1:10){
+  # sample one checklist per grid cell per week
+  # sample detection/non-detection independently 
+  btg_ss <- checklist_cell %>% 
+    group_by(species_observed, year, week, cell) %>% 
+    sample_n(size = 1) %>% 
+    ungroup()
+  
+  # divide data into test and train data
+  btg_split <- btg_ss %>% 
+    # select only the columns to be used in the model
+    dplyr::select(species_observed,
+                  year, day_of_year,
+                  time_observations_started, duration_minutes,
+                  effort_distance_km, number_observers, 
+                  starts_with("pland_"),
+                  -pland_00_NA,
+                  -pland_17_ice_snow,
+                  starts_with("elevation_med"),
+                  fresh, coast,
+                  bio2, bio5, bio8,
+                  bio9, bio13, bio14, bio19) %>%
+    drop_na()
+  # split 80/20
+  btg_split <- btg_split %>% 
+    split(if_else(runif(nrow(.)) <= 0.8, "train", "test"))
+  
+  # calculate proportion of detections for balanced random forest
+  detection_freq <- mean(btg_split$train$species_observed)
+  
+  # Use rangr to run random forest
+  # ranger requires a factor response to do classification
+  btg_split$train$species_observed <- factor(btg_split$train$species_observed)
+  
+  # remove unneeded objects 
+  rm(btg_ss)
+  
+  # grow random forest
+  rf <- ranger(formula =  species_observed ~ ., 
+               data = btg_split$train,
+               num.trees = 1000,
+               mtry = 4,
+               importance = "impurity",
+               probability = TRUE,
+               replace = TRUE, 
+               sample.fraction = c(detection_freq, detection_freq))
+  
+  # save resulting model and data used
+  save(rf, btg_split,
+       file = paste0("results/btg1970_rf_repeat_20211103/btg1970_rf_", 
+                     i, "_20211103.rdata"))
+  # clear memory
+  rm(rf, btg_split, detection_freq)
+}
+```
+
+### Historic GTGR Model
+
+```{r, eval = FALSE}
+set.seed(1567)
+
+# load ebird data
+habitat_checklist <- read_csv("data/env/habitat_checklist70_20210826.csv") %>% 
+  data.frame()
+
+gtg_ebird_zf <- read_csv("data/eBird/gtg_ebird_zf.csv") %>% data.frame()
+
+# filter for 1970-1979 observations and id is in lc_checklists
+gtg_70_79 <- filter(gtg_ebird_zf, year>=1970, year<=1979, 
+                    locality_id %in% habitat_checklist$locality_id, 
+                    grepl("US-", state_code))
+
+# combine habitat data and ebird data for full set of data for testing model
+gtg_full <- inner_join(gtg_70_79, habitat_checklist, by=c("locality_id","year"))
+
+# get data for relevant study area to create model
+gtg_locations <- read_csv("data/env/habitat_checklist1979_gtg.csv") %>% data.frame()
+
+gtg_habitat <- filter(gtg_full, checklist_id %in% gtg_locations$checklist_id)
+
+# exclude points with NAs
+gtg_habitat <- gtg_habitat[complete.cases(gtg_habitat), ]
+
+# remember to remove unneeded data frames
+rm(gtg_70_79, gtg_ebird_zf, gtg_locations, gtg_full, habitat_checklist)
+
+### Spatiotemporal Subsampling
+# Here I will subsample observations and non-observations separately 
+# across the study area
+
+# generate 5km hexagonal grid cells
+dggs <- dgconstruct(spacing = 5)
+
+# get hexagonal cell id and week number for each checklist
+# will subsample one observation per week per grid cell
+checklist_cell <- gtg_habitat %>% 
+  dplyr::mutate(cell = dgGEO_to_SEQNUM(dggs, longitude, latitude)$seqnum,
+                year = year(observation_date),
+                week = week(observation_date))
+
+rm(gtg_habitat, dggs)
+
+# create for loop to repeat steps 10 times
+for(i in 1:10){
+  # sample one checklist per grid cell per week
+  # sample detection/non-detection independently 
+  gtg_ss <- checklist_cell %>% 
+    group_by(species_observed, year, week, cell) %>% 
+    sample_n(size = 1) %>% 
+    ungroup()
+  
+  # divide data into test and train data
+  gtg_split <- gtg_ss %>% 
+    # select only the columns to be used in the model
+    dplyr::select(species_observed,
+                  year, day_of_year,
+                  time_observations_started, duration_minutes,
+                  effort_distance_km, number_observers, 
+                  starts_with("pland_"),
+                  -pland_00_NA,
+                  -pland_17_ice_snow,
+                  starts_with("elevation_med"),
+                  fresh, coast,
+                  bio2, bio5, bio8,
+                  bio9, bio13, bio14, bio19) %>%
+    drop_na()
+  # split 80/20
+  gtg_split <- gtg_split %>% 
+    split(if_else(runif(nrow(.)) <= 0.8, "train", "test"))
+  
+  # calculate proportion of detections for balanced random forest
+  detection_freq <- mean(gtg_split$train$species_observed)
+  
+  # Use rangr to run random forest
+  # ranger requires a factor response to do classification
+  gtg_split$train$species_observed <- factor(gtg_split$train$species_observed)
+  
+  # remove unneeded objects 
+  rm(gtg_ss)
+  
+  # grow random forest
+  rf <- ranger(formula =  species_observed ~ ., 
+               data = gtg_split$train,
+               num.trees = 1000,
+               mtry = 4,
+               importance = "impurity",
+               probability = TRUE,
+               replace = TRUE, 
+               sample.fraction = c(detection_freq, detection_freq))
+  
+  # save resulting model and data used
+  save(rf, gtg_split,
+       file = paste0("results/gtg1970_rf_repeat_20211103/gtg1970_rf_", 
+                     i, "_20211103.rdata"))
+  # clear memory
+  rm(rf, gtg_split, detection_freq)
+}
+```
+
+## Model Analysis
+
+We analyzed our models using cross-validation, predictor importance, and the partial dependence of habitat suitability on each predictor. We also predicted habitat suitability across both the 1979 and 2019 prediction surfaces for both models. The chunks below re-create these analyses using code modified from Strimas-Mackey et al. 2020 sections 4.5 and 4.5.
+
+Before analyzing each model, we re-loaded the models to give them unique names.
+
+```{r, eval = FALSE}
+## Current BTGR
+# load the models
+# 1
+load("results/btg2010_rf_repeat_20220304/btg2010_rf_1_20220304.rdata")
+rf_1 <- rf
+split_1 <- btg_split
+
+# 2
+load("results/btg2010_rf_repeat_20220304/btg2010_rf_2_20220304.rdata")
+rf_2 <- rf
+split_2 <- btg_split
+
+# 3
+load("results/btg2010_rf_repeat_20220304/btg2010_rf_3_20220304.rdata")
+rf_3 <- rf
+split_3 <- btg_split
+
+# 4
+load("results/btg2010_rf_repeat_20220304/btg2010_rf_4_20220304.rdata")
+rf_4 <- rf
+split_4 <- btg_split
+
+# 5
+load("results/btg2010_rf_repeat_20220304/btg2010_rf_5_20220304.rdata")
+rf_5 <- rf
+split_5 <- btg_split
+
+# 6
+load("results/btg2010_rf_repeat_20220304/btg2010_rf_6_20220304.rdata")
+rf_6 <- rf
+split_6 <- btg_split
+
+# 7
+load("results/btg2010_rf_repeat_20220304/btg2010_rf_7_20220304.rdata")
+rf_7 <- rf
+split_7 <- btg_split
+
+# 8
+load("results/btg2010_rf_repeat_20220304/btg2010_rf_8_20220304.rdata")
+rf_8 <- rf
+split_8 <- btg_split
+
+# 9
+load("results/btg2010_rf_repeat_20220304/btg2010_rf_9_20220304.rdata")
+rf_9 <- rf
+split_9 <- btg_split
+
+# 10
+load("results/btg2010_rf_repeat_20220304/btg2010_rf_10_20220304.rdata")
+rf_10 <- rf
+split_10 <- btg_split
+
+# organize the test data and the models into single objects
+test_btg2010_list <- list(split_1$test, split_2$test, split_3$test, 
+                          split_4$test, split_5$test,
+                  split_6$test, split_7$test, split_8$test, split_9$test, split_10$test)
+
+rf_btg2010_list <- list(rf_1, rf_2, rf_3, rf_4, rf_5, rf_6, rf_7, rf_8, rf_9, rf_10)
+
+# remove redundant objects
+rm(rf_1, rf_2, rf_3, rf_4, rf_5, rf_6, rf_7, rf_8, rf_9, rf_10,
+   split_1, split_2, split_3, split_4, split_5,
+   split_6, split_7, split_8, split_9, split_10, rf, btg_split)
+
+
+## Current GTGR
+# load the models
+# 1
+load("results/gtg2010_rf_repeat_20220304/gtg2010_rf_1_20220304.rdata")
+rf_1 <- rf
+split_1 <- gtg_split
+
+# 2
+load("results/gtg2010_rf_repeat_20220304/gtg2010_rf_2_20220304.rdata")
+rf_2 <- rf
+split_2 <- gtg_split
+
+# 3
+load("results/gtg2010_rf_repeat_20220304/gtg2010_rf_3_20220304.rdata")
+rf_3 <- rf
+split_3 <- gtg_split
+
+# 4
+load("results/gtg2010_rf_repeat_20220304/gtg2010_rf_4_20220304.rdata")
+rf_4 <- rf
+split_4 <- gtg_split
+
+# 5
+load("results/gtg2010_rf_repeat_20220304/gtg2010_rf_5_20220304.rdata")
+rf_5 <- rf
+split_5 <- gtg_split
+
+# 6
+load("results/gtg2010_rf_repeat_20220304/gtg2010_rf_6_20220304.rdata")
+rf_6 <- rf
+split_6 <- gtg_split
+
+# 7
+load("results/gtg2010_rf_repeat_20220304/gtg2010_rf_7_20220304.rdata")
+rf_7 <- rf
+split_7 <- gtg_split
+
+# 8
+load("results/gtg2010_rf_repeat_20220304/gtg2010_rf_8_20220304.rdata")
+rf_8 <- rf
+split_8 <- gtg_split
+
+# 9
+load("results/gtg2010_rf_repeat_20220304/gtg2010_rf_9_20220304.rdata")
+rf_9 <- rf
+split_9 <- gtg_split
+
+# 10
+load("results/gtg2010_rf_repeat_20220304/gtg2010_rf_10_20220304.rdata")
+rf_10 <- rf
+split_10 <- gtg_split
+
+# organize the test data and the models into single objects
+test_gtg2010_list <- list(split_1$test, split_2$test, split_3$test, 
+                          split_4$test, split_5$test,
+                  split_6$test, split_7$test, split_8$test, split_9$test, split_10$test)
+
+rf_gtg2010_list <- list(rf_1, rf_2, rf_3, rf_4, rf_5, rf_6, rf_7, rf_8, rf_9, rf_10)
+
+# remove redundant objects
+rm(rf_1, rf_2, rf_3, rf_4, rf_5, rf_6, rf_7, rf_8, rf_9, rf_10,
+   split_1, split_2, split_3, split_4, split_5,
+   split_6, split_7, split_8, split_9, split_10, rf, gtg_split)
+
+## Historic BTGR
+# load the models
+# 1
+load("results/btg1970_rf_repeat_20211103/btg1970_rf_1_20211103.rdata")
+rf_1 <- rf
+split_1 <- btg_split
+
+# 2
+load("results/btg1970_rf_repeat_20211103/btg1970_rf_2_20211103.rdata")
+rf_2 <- rf
+split_2 <- btg_split
+
+# 3
+load("results/btg1970_rf_repeat_20211103/btg1970_rf_3_20211103.rdata")
+rf_3 <- rf
+split_3 <- btg_split
+
+# 4
+load("results/btg1970_rf_repeat_20211103/btg1970_rf_4_20211103.rdata")
+rf_4 <- rf
+split_4 <- btg_split
+
+# 5
+load("results/btg1970_rf_repeat_20211103/btg1970_rf_5_20211103.rdata")
+rf_5 <- rf
+split_5 <- btg_split
+
+# 6
+load("results/btg1970_rf_repeat_20211103/btg1970_rf_6_20211103.rdata")
+rf_6 <- rf
+split_6 <- btg_split
+
+# 7
+load("results/btg1970_rf_repeat_20211103/btg1970_rf_7_20211103.rdata")
+rf_7 <- rf
+split_7 <- btg_split
+
+# 8
+load("results/btg1970_rf_repeat_20211103/btg1970_rf_8_20211103.rdata")
+rf_8 <- rf
+split_8 <- btg_split
+
+# 9
+load("results/btg1970_rf_repeat_20211103/btg1970_rf_9_20211103.rdata")
+rf_9 <- rf
+split_9 <- btg_split
+
+# 10
+load("results/btg1970_rf_repeat_20211103/btg1970_rf_10_20211103.rdata")
+rf_10 <- rf
+split_10 <- btg_split
+
+# organize the test data and the models into single objects
+test_btg1970_list <- list(split_1$test, split_2$test, split_3$test, 
+                          split_4$test, split_5$test,
+                  split_6$test, split_7$test, split_8$test, split_9$test, split_10$test)
+
+rf_btg1970_list <- list(rf_1, rf_2, rf_3, rf_4, rf_5, rf_6, rf_7, rf_8, rf_9, rf_10)
+
+# remove redundant objects
+rm(rf_1, rf_2, rf_3, rf_4, rf_5, rf_6, rf_7, rf_8, rf_9, rf_10,
+   split_1, split_2, split_3, split_4, split_5,
+   split_6, split_7, split_8, split_9, split_10, rf, btg_split)
+
+## Historic GTGR
+
+# load the models
+# 1
+load("results/gtg1970_rf_repeat_20210930/gtg1970_rf_1_20210930.rdata")
+rf_1 <- rf
+split_1 <- gtg_split
+
+# 2
+load("results/gtg1970_rf_repeat_20210930/gtg1970_rf_2_20210930.rdata")
+rf_2 <- rf
+split_2 <- gtg_split
+
+# 3
+load("results/gtg1970_rf_repeat_20210930/gtg1970_rf_3_20210930.rdata")
+rf_3 <- rf
+split_3 <- gtg_split
+
+# 4
+load("results/gtg1970_rf_repeat_20210930/gtg1970_rf_4_20210930.rdata")
+rf_4 <- rf
+split_4 <- gtg_split
+
+# 5
+load("results/gtg1970_rf_repeat_20210930/gtg1970_rf_5_20210930.rdata")
+rf_5 <- rf
+split_5 <- gtg_split
+
+# 6
+load("results/gtg1970_rf_repeat_20210930/gtg1970_rf_6_20210930.rdata")
+rf_6 <- rf
+split_6 <- gtg_split
+
+# 7
+load("results/gtg1970_rf_repeat_20210930/gtg1970_rf_7_20210930.rdata")
+rf_7 <- rf
+split_7 <- gtg_split
+
+# 8
+load("results/gtg1970_rf_repeat_20210930/gtg1970_rf_8_20210930.rdata")
+rf_8 <- rf
+split_8 <- gtg_split
+
+# 9
+load("results/gtg1970_rf_repeat_20210930/gtg1970_rf_9_20210930.rdata")
+rf_9 <- rf
+split_9 <- gtg_split
+
+# 10
+load("results/gtg1970_rf_repeat_20210930/gtg1970_rf_10_20210930.rdata")
+rf_10 <- rf
+split_10 <- gtg_split
+
+# organize the test data and the models into single objects
+test_gtg1970_list <- list(split_1$test, split_2$test, split_3$test, 
+                          split_4$test, split_5$test,
+                  split_6$test, split_7$test, split_8$test, split_9$test, split_10$test)
+
+rf_gtg1970_list <- list(rf_1, rf_2, rf_3, rf_4, rf_5, rf_6, rf_7, rf_8, rf_9, rf_10)
+
+# remove redundant objects
+rm(rf_1, rf_2, rf_3, rf_4, rf_5, rf_6, rf_7, rf_8, rf_9, rf_10,
+   split_1, split_2, split_3, split_4, split_5,
+   split_6, split_7, split_8, split_9, split_10, rf, gtg_split)
+
+```
+
+### Cross-Validation and Transferability
+
+We first predicted habitat suitability across the test datasets for each model.
+
+```{r, eval = FALSE}
+## Current BTGR
+# data frame for results
+rf_btg2010_test <- data.frame(id = numeric(), obs = logical(), 
+                              fit = numeric(), model = numeric())
+
+for(i in 1:10){
+  p_fit <- predict(rf_btg2010_list[[i]], data = test_btg2010_list[[i]], 
+                   type = "response")
+
+# extract predictions
+  p_fit_pred <- p_fit$predictions[, 2]
+  
+  # add results to data frame
+  rf_btg2010_test <- rbind(rf_test, data.frame(id = seq_along(p_fit_pred),
+                                       obs = test_btg2010_list[[i]]$species_observed, 
+                                       fit = p_fit_pred, model = i))
+
+}
+
+# save predictions
+write_csv(rf_btg2010_test, 
+          file = "results/all_model_evaluation_20220304/btg2010_test.csv")
+
+## Current GTGR
+# data frame for results
+rf_gtg2010_test <- data.frame(id = numeric(), obs = logical(), 
+                              fit = numeric(), model = numeric())
+
+for(i in 1:10){
+  p_fit <- predict(rf_gtg2010_list[[i]], data = test_gtg2010_list[[i]], 
+                   type = "response")
+
+# extract predictions
+  p_fit_pred <- p_fit$predictions[, 2]
+  
+  # add results to data frame
+  rf_gtg2010_test <- rbind(rf_test, data.frame(id = seq_along(p_fit_pred),
+                                       obs = test_gtg2010_list[[i]]$species_observed, 
+                                       fit = p_fit_pred, model = i))
+
+}
+
+# save predictions
+write_csv(rf_gtg2010_test, 
+          file = "results/all_model_evaluation_20220304/gtg2010_test.csv")
+
+## Historic BTGR
+# data frame for results
+rf_btg1970_test <- data.frame(id = numeric(), obs = logical(), 
+                              fit = numeric(), model = numeric())
+
+for(i in 1:10){
+  p_fit <- predict(rf_list[[i]], data = test_btg1970_list[[i]], type = "response")
+
+# extract predictions
+  p_fit_pred <- p_fit$predictions[, 2]
+  
+  # add results to data frame
+  rf_btg1970_test <- rbind(rf_btg1970_test, data.frame(id = seq_along(p_fit_pred),
+                                       obs = test_btg1970_list[[i]]$species_observed, 
+                                       fit = p_fit_pred, model = i))
+
+}
+
+write_csv(rf_btg1970_test, 
+          file = "results/all_model_evaluation_20211103/btg1970_test.csv")
+
+## Historic GTGR
+# data frame for results
+rf_gtg1970_test <- data.frame(id = numeric(), obs = logical(), 
+                              fit = numeric(), model = numeric())
+
+for(i in 1:10){
+  p_fit <- predict(rf_list[[i]], data = test_gtg1970_list[[i]], type = "response")
+
+# extract predictions
+  p_fit_pred <- p_fit$predictions[, 2]
+  
+  # add results to data frame
+  rf_gtg1970_test <- rbind(rf_gtg1970_test, data.frame(id = seq_along(p_fit_pred),
+                                       obs = test_gtg1970_list[[i]]$species_observed, 
+                                       fit = p_fit_pred, model = i))
+
+}
+
+write_csv(rf_gtg1970_test, 
+          file = "results/all_model_evaluation_20211103/gtg1970_test.csv")
+```
+
+Next, we calculated how well the predictions from the test data match the real presence-absence values using Cohen's Kappa and the area under the sensitivity-specificity curve (AUC). The performance of our models measures their discrimination ability, the ability to distinguish presence and absence points. We also calculated the maximum sensitivity-specificity sum threshold for later use in classifying suitable and unsuitable habitat. We also calculated mean-squared error, sensitivity, and specificity as additional metrics for discrimination ability.
+
+```{r, eval = FALSE}
+## Current BTGR
+# summarize discrimination ability
+rf_btg2010_assessment <- rf_btg2010_test %>% group_by(model) %>%
+  dplyr::summarize(mse = mean((obs - fit)^2, na.rm = TRUE),
+                   kappa = optimal.thresholds(data.frame(id, obs, fit), 
+                                              opt.method = "MaxKappa")$fit,
+                   sensitivity = presence.absence.accuracy(data.frame(id, obs, fit),
+                                                           threshold = kappa, 
+                                                           na.rm = TRUE,
+                                                           st.dev = FALSE)$sensitivity,
+                   specificity = presence.absence.accuracy(data.frame(id, obs, fit),
+                                                           threshold = kappa,
+                                                           na.rm = TRUE,
+                                                           st.dev = FALSE)$specificity,
+                   auc = presence.absence.accuracy(data.frame(id, obs, fit),
+                                                   threshold = kappa, na.rm = TRUE,
+                                                   st.dev = FALSE)$AUC,
+                   kappa = presence.absence.accuracy(data.frame(id, obs, fit),
+                                                     threshold = kappa, na.rm = TRUE,
+                                                     st.dev = FALSE)$Kappa)
+
+# Calculate the maximum sensitivity-specificity sum threshold
+rf_btg2010_test %>% group_by(model) %>%
+  dplyr::summarize(SSSMax = optimal.thresholds(data.frame(id, obs, fit), 
+                                               opt.method = "MaxSens+Spec")$fit)
+# Threshold is 0.47800000
+
+# save discrimination assessment
+write_csv(rf_btg2010_assessment, file = "results/all_model_evaluation_20220304/btg2010_disc.csv")
+
+## Current GTGR
+# summarize discrimination ability
+rf_gtg2010_assessment <- rf_gtg2010_test %>% group_by(model) %>%
+  dplyr::summarize(mse = mean((obs - fit)^2, na.rm = TRUE),
+                   kappa = optimal.thresholds(data.frame(id, obs, fit), 
+                                              opt.method = "MaxKappa")$fit,
+                   sensitivity = presence.absence.accuracy(data.frame(id, obs, fit),
+                                                           threshold = kappa, 
+                                                           na.rm = TRUE,
+                                                           st.dev = FALSE)$sensitivity,
+                   specificity = presence.absence.accuracy(data.frame(id, obs, fit),
+                                                           threshold = kappa, 
+                                                           na.rm = TRUE,
+                                                           st.dev = FALSE)$specificity,
+                   auc = presence.absence.accuracy(data.frame(id, obs, fit),
+                                                   threshold = kappa, na.rm = TRUE,
+                                                   st.dev = FALSE)$AUC,
+                   kappa = presence.absence.accuracy(data.frame(id, obs, fit),
+                                                     threshold = kappa, na.rm = TRUE,
+                                                     st.dev = FALSE)$Kappa)
+
+# Calculate the maximum sensitivity-specificity sum threshold
+rf_gtg2010_test %>% group_by(model) %>%
+  dplyr::summarize(SSSMax = optimal.thresholds(data.frame(id, obs, fit), 
+                                               opt.method = "MaxSens+Spec")$fit)
+# Threshold is 0.44400000
+
+# save discrimination assessment
+write_csv(rf_gtg2010_assessment, 
+          file = "results/all_model_evaluation_20220304/gtg2010_disc.csv")
+
+## Historic BTGR
+# summarize discrimination ability
+rf_btg1970_assessment <- rf_btg1970_test %>% group_by(model) %>%
+  dplyr::summarize(mse = mean((obs - fit)^2, na.rm = TRUE),
+                   kappa = optimal.thresholds(data.frame(id, obs, fit), 
+                                              opt.method = "MaxKappa")$fit,
+                   sensitivity = presence.absence.accuracy(data.frame(id, obs, fit),
+                                                           threshold = kappa, 
+                                                           na.rm = TRUE,
+                                                           st.dev = FALSE)$sensitivity,
+                   specificity = presence.absence.accuracy(data.frame(id, obs, fit),
+                                                           threshold = kappa, 
+                                                           na.rm = TRUE,
+                                                           st.dev = FALSE)$specificity,
+                   auc = presence.absence.accuracy(data.frame(id, obs, fit),
+                                                   threshold = kappa, na.rm = TRUE,
+                                                   st.dev = FALSE)$AUC,
+                   kappa = presence.absence.accuracy(data.frame(id, obs, fit),
+                                                     threshold = kappa, na.rm = TRUE,
+                                                     st.dev = FALSE)$Kappa)
+
+# Calculate the maximum sensitivity-specificity sum threshold
+rf_btg1970_test %>% group_by(model) %>%
+  dplyr::summarize(SSSMax = optimal.thresholds(data.frame(id, obs, fit), 
+                                               opt.method = "MaxSens+Spec")$fit)
+# Threshold is 0.38350000
+
+# save discrimination assessment
+write_csv(rf_btg1970_assessment, 
+          file = "results/all_model_evaluation_20211103/btg1970_disc.csv")
+
+## Historic GTGR
+# summarize discrimination ability
+rf_gtg1970_assessment <- rf_gtg1970_test %>% group_by(model) %>%
+  dplyr::summarize(mse = mean((obs - fit)^2, na.rm = TRUE),
+                   kappa = optimal.thresholds(data.frame(id, obs, fit), 
+                                              opt.method = "MaxKappa")$fit,
+                   sensitivity = presence.absence.accuracy(data.frame(id, obs, fit),
+                                                           threshold = kappa, 
+                                                           na.rm = TRUE,
+                                                           st.dev = FALSE)$sensitivity,
+                   specificity = presence.absence.accuracy(data.frame(id, obs, fit),
+                                                           threshold = kappa, 
+                                                           na.rm = TRUE,
+                                                           st.dev = FALSE)$specificity,
+                   auc = presence.absence.accuracy(data.frame(id, obs, fit),
+                                                   threshold = kappa, na.rm = TRUE,
+                                                   st.dev = FALSE)$AUC,
+                   kappa = presence.absence.accuracy(data.frame(id, obs, fit),
+                                                     threshold = kappa, na.rm = TRUE,
+                                                     st.dev = FALSE)$Kappa)
+
+# Calculate the maximum sensitivity-specificity sum threshold
+rf_gtg1970_test %>% group_by(model) %>%
+  dplyr::summarize(SSSMax = optimal.thresholds(data.frame(id, obs, fit), 
+                                               opt.method = "MaxSens+Spec")$fit)
+# Threshold is 0.46350000
+
+# save discrimination assessment
+write_csv(rf_gtg1970_assessment, 
+          file = "results/all_model_evaluation_20211103/gtg1970_disc.csv")
+
+```
+
+We next repeated the above calculations using test data from models in the opposite time period (historic test data for a current trained model and current test data for a historic trained model) to determine the transferability of our models.
+
+```{r, eval = FALSE}
+## Current BTGR
+# data frame for results
+rf_btg2010_cross_test <- data.frame(id = numeric(), obs = logical(), 
+                                    fit = numeric(), model = numeric())
+
+for(i in 1:10){
+  p_fit <- predict(rf_btg2010_list[[i]], data = test_btg1970_list[[i]]$test, 
+                   type = "response")
+  
+  # extract predictions
+  p_fit_pred <- p_fit$predictions[, 2]
+  
+  # add results to data frame
+  rf_btg2010_cross_test <- rbind(rf_btg2010_cross_test, 
+                                 data.frame(id = seq_along(p_fit_pred),
+                                    obs = test_btg1970_list[[i]]$test$species_observed, 
+                                       fit = p_fit_pred, model = i))
+  
+}
+
+# save predictions
+write_csv(rf_btg2010_cross_test, 
+          file = "results/all_model_evaluation_20220304/btg2010_cross_test.csv")
+
+## Current GTGR
+# data frame for results
+rf_gtg2010_cross_test <- data.frame(id = numeric(), obs = logical(), 
+                                    fit = numeric(), model = numeric())
+
+for(i in 1:10){
+  p_fit <- predict(rf_gtg2010_list[[i]], data = test_gtg1970_list[[i]]$test, 
+                   type = "response")
+  
+  # extract predictions
+  p_fit_pred <- p_fit$predictions[, 2]
+  
+  # add results to data frame
+  rf_gtg2010_cross_test <- rbind(rf_gtg2010_cross_test, 
+                                 data.frame(id = seq_along(p_fit_pred),
+                                obs = test_gtg1970_list[[i]]$test$species_observed, 
+                                       fit = p_fit_pred, model = i))
+  
+}
+
+# save predictions
+write_csv(rf_gtg2010_cross_test, 
+          file = "results/all_model_evaluation_20220304/gtg2010_cross_test.csv")
+
+## Historic BTGR
+# data frame for results
+rf_btg1970_cross_test <- data.frame(id = numeric(), obs = logical(), 
+                                    fit = numeric(), model = numeric())
+
+for(i in 1:10){
+  p_fit <- predict(rf_btg1970_list[[i]], data = test_btg2010_list[[i]]$test,
+                   type = "response")
+  
+  # extract predictions
+  p_fit_pred <- p_fit$predictions[, 2]
+  
+  # add results to data frame
+  rf_btg1970_cross_test <- rbind(rf_btg1970_cross_test, 
+                                 data.frame(id = seq_along(p_fit_pred),
+                                  obs = test_btg2010_list[[i]]$test$species_observed, 
+                                       fit = p_fit_pred, model = i))
+  
+}
+
+# save predictions
+write_csv(rf_btg2010_cross_test, 
+          file = "results/all_model_evaluation_20211103/btg1970_cross_test.csv")
+
+## Historic GTGR
+# data frame for results
+rf_gtg1970_cross_test <- data.frame(id = numeric(), obs = logical(), 
+                                    fit = numeric(), model = numeric())
+
+for(i in 1:10){
+  p_fit <- predict(rf_gtg1970_list[[i]], data = test_gtg2010_list[[i]]$test, 
+                   type = "response")
+  
+  # extract predictions
+  p_fit_pred <- p_fit$predictions[, 2]
+  
+  # add results to data frame
+  rf_gtg1970_cross_test <- rbind(rf_gtg1970_cross_test, 
+                                 data.frame(id = seq_along(p_fit_pred),
+                                  obs = test_gtg2010_list[[i]]$test$species_observed, 
+                                       fit = p_fit_pred, model = i))
+  
+}
+
+# save predictions
+write_csv(rf_gtg2010_cross_test, 
+          file = "results/all_model_evaluation_20211103/gtg1970_cross_test.csv")
+
+```
+
+
+```{r, eval = FALSE}
+## Current BTGR
+# summarize discrimination ability
+rf_btg2010_cross_assessment <- rf_btg2010_cross_test %>% group_by(model) %>%
+  dplyr::summarize(mse = mean((obs - fit)^2, na.rm = TRUE),
+                   kappa = optimal.thresholds(data.frame(id, obs, fit), 
+                                              opt.method = "MaxKappa")$fit,
+                   sensitivity = presence.absence.accuracy(data.frame(id, obs, fit),
+                                                           threshold = kappa, 
+                                                           na.rm = TRUE,
+                                                           st.dev = FALSE)$sensitivity,
+                   specificity = presence.absence.accuracy(data.frame(id, obs, fit),
+                                                           threshold = kappa, 
+                                                           na.rm = TRUE,
+                                                           st.dev = FALSE)$specificity,
+                   auc = presence.absence.accuracy(data.frame(id, obs, fit),
+                                                   threshold = kappa, na.rm = TRUE,
+                                                   st.dev = FALSE)$AUC,
+                   kappa = presence.absence.accuracy(data.frame(id, obs, fit),
+                                                     threshold = kappa, na.rm = TRUE,
+                                                     st.dev = FALSE)$Kappa)
+
+# save discrimination assessment
+write_csv(rf_btg2010_cross_assessment,
+          file = "results/all_model_evaluation_20220304/btg2010_cross_disc.csv")
+
+## Current GTGR
+# summarize discrimination ability
+rf_gtg2010_cross_assessment <- rf_gtg2010_cross_test %>% group_by(model) %>%
+  dplyr::summarize(mse = mean((obs - fit)^2, na.rm = TRUE),
+                   kappa = optimal.thresholds(data.frame(id, obs, fit), 
+                                              opt.method = "MaxKappa")$fit,
+                   sensitivity = presence.absence.accuracy(data.frame(id, obs, fit),
+                                                           threshold = kappa, 
+                                                           na.rm = TRUE,
+                                                           st.dev = FALSE)$sensitivity,
+                   specificity = presence.absence.accuracy(data.frame(id, obs, fit),
+                                                           threshold = kappa, 
+                                                           na.rm = TRUE,
+                                                           st.dev = FALSE)$specificity,
+                   auc = presence.absence.accuracy(data.frame(id, obs, fit),
+                                                   threshold = kappa, na.rm = TRUE,
+                                                   st.dev = FALSE)$AUC,
+                   kappa = presence.absence.accuracy(data.frame(id, obs, fit),
+                                                     threshold = kappa, na.rm = TRUE,
+                                                     st.dev = FALSE)$Kappa)
+
+# save discrimination assessment
+write_csv(rf_gtg2010_cross_assessment, 
+          file = "results/all_model_evaluation_20220304/gtg2010_cross_disc.csv")
+
+## Historic BTGR
+# summarize discrimination ability
+rf_btg1970_cross_assessment <- rf_btg1970_cross_test %>% group_by(model) %>%
+  dplyr::summarize(mse = mean((obs - fit)^2, na.rm = TRUE),
+                   kappa = optimal.thresholds(data.frame(id, obs, fit), 
+                                              opt.method = "MaxKappa")$fit,
+                   sensitivity = presence.absence.accuracy(data.frame(id, obs, fit),
+                                                           threshold = kappa, 
+                                                           na.rm = TRUE,
+                                                           st.dev = FALSE)$sensitivity,
+                   specificity = presence.absence.accuracy(data.frame(id, obs, fit),
+                                                           threshold = kappa,
+                                                           na.rm = TRUE,
+                                                           st.dev = FALSE)$specificity,
+                   auc = presence.absence.accuracy(data.frame(id, obs, fit),
+                                                   threshold = kappa, na.rm = TRUE,
+                                                   st.dev = FALSE)$AUC,
+                   kappa = presence.absence.accuracy(data.frame(id, obs, fit),
+                                                     threshold = kappa, na.rm = TRUE,
+                                                     st.dev = FALSE)$Kappa)
+
+# save discrimination assessment
+write_csv(rf_btg1970_cross_assessment, 
+          file = "results/all_model_evaluation_20211103/btg1970_cross_disc.csv")
+
+## Historic GTGR
+# summarize discrimination ability
+rf_gtg1970_cross_assessment <- rf_gtg1970_cross_test %>% group_by(model) %>%
+  dplyr::summarize(mse = mean((obs - fit)^2, na.rm = TRUE),
+                   kappa = optimal.thresholds(data.frame(id, obs, fit), 
+                                              opt.method = "MaxKappa")$fit,
+                   sensitivity = presence.absence.accuracy(data.frame(id, obs, fit),
+                                                           threshold = kappa, 
+                                                           na.rm = TRUE,
+                                                           st.dev = FALSE)$sensitivity,
+                   specificity = presence.absence.accuracy(data.frame(id, obs, fit),
+                                                           threshold = kappa, 
+                                                           na.rm = TRUE,
+                                                           st.dev = FALSE)$specificity,
+                   auc = presence.absence.accuracy(data.frame(id, obs, fit),
+                                                   threshold = kappa, na.rm = TRUE,
+                                                   st.dev = FALSE)$AUC,
+                   kappa = presence.absence.accuracy(data.frame(id, obs, fit),
+                                                     threshold = kappa, na.rm = TRUE,
+                                                     st.dev = FALSE)$Kappa)
+
+# save discrimination assessment
+write_csv(rf_gtg1970_cross_assessment, 
+          file = "results/all_model_evaluation_20211103/gtg1970_cross_disc.csv")
+```
+
+### Predictor Importance
+
+We averaged predictor importance across the 10 iterations of each model.
+
+```{r, eval = FALSE}
+## Current BTGR
+# calculate importance averaged across models
+var_btg2010_import <- sapply(rf_btg2010_list, 
+                             function(x) x[["variable.importance"]]) %>% t() %>%
+  data.frame(model = 1:10) %>% melt(id.vars = "model")
+
+avg_var_btg2010_import <- group_by(var_btg2010_import, variable) %>%
+  dplyr::summarize(avg = mean(value), sd = sd(value)) %>% data.frame()
+
+# save importance means 
+write_csv(avg_var_btg2010_import, 
+          file = "results/all_model_evaluation_20220304/btg2010_var_import.csv")
+
+## Current GTGR
+# calculate importance averaged across models
+var_gtg2010_import <- sapply(rf_gtg2010_list, 
+                             function(x) x[["variable.importance"]]) %>% t() %>%
+  data.frame(model = 1:10) %>% melt(id.vars = "model")
+
+avg_var_gtg2010_import <- group_by(var_gtg2010_import, variable) %>%
+  dplyr::summarize(avg = mean(value), sd = sd(value)) %>% data.frame()
+
+# save importance means 
+write_csv(avg_var_gtg2010_import, 
+          file = "results/all_model_evaluation_20220304/gtg2010_var_import.csv")
+
+## Historic BTGR
+# calculate importance averaged across models
+var_btg1970_import <- sapply(rf_btg1970_list, 
+                             function(x) x[["variable.importance"]]) %>% t() %>%
+  data.frame(model = 1:10) %>% melt(id.vars = "model")
+
+avg_var_btg1970_import <- group_by(var_btg1970_import, variable) %>%
+  dplyr::summarize(avg = mean(value), sd = sd(value)) %>% data.frame()
+
+# save importance means 
+write_csv(avg_var_btg1970_import, 
+          file = "results/all_model_evaluation_20211103/btg1970_var_import.csv")
+
+## Historic GTGR
+# calculate importance averaged across models
+var_gtg1970_import <- sapply(rf_gtg1970_list, 
+                             function(x) x[["variable.importance"]]) %>% t() %>%
+  data.frame(model = 1:10) %>% melt(id.vars = "model")
+
+avg_var_gtg1970_import <- group_by(var_gtg1970_import, variable) %>%
+  dplyr::summarize(avg = mean(value), sd = sd(value)) %>% data.frame()
+
+# save importance means 
+write_csv(avg_var_gtg1970_import, 
+          file = "results/all_model_evaluation_20211103/gtg1970_var_import.csv")
+
+```
+
+### Partial Dependence
+
+```{r, eval = FALSE}
+## Current BTGR
+# create function to calculate partial dependency 
+# (Strimas-Mackey et al. 2020 Section 4.5)
+calculate_pd <- function(predictor, model, data, 
+                         x_res = 25, n = 1000) {
+  # create prediction grid
+  rng <- range(data[[predictor]], na.rm = TRUE)
+  x_grid <- seq(rng[1], rng[2], length.out = x_res)
+  grid <- data.frame(covariate = predictor, x = x_grid, 
+                     stringsAsFactors = FALSE)
+  names(grid) <- c("covariate", predictor)
+  
+  # subsample training data
+  n <- min(n, nrow(data))
+  s <- sample(seq.int(nrow(data)), size = n, replace = FALSE)
+  data <- data[s, ]
+  
+  # drop focal predictor from data
+  data <- data[names(data) != predictor]
+  grid <- merge(grid, data, all = TRUE)
+  
+  # predict
+  p <- predict(model, data = grid)
+  
+  # summarize
+  pd <- grid[, c("covariate", predictor)]
+  names(pd) <- c("covariate", "x")
+  pd$pred <- p$predictions[, 2]
+  pd <- dplyr::group_by(pd, covariate, x) %>% 
+    dplyr::summarise(pred = mean(pred, na.rm = TRUE)) %>% 
+    dplyr::ungroup()
+  
+  return(pd)
+}
+
+
+pd_btg2010 <- lapply(avg_var_btg2010_import$variable, function(x) lapply(rf_btg2010_list,
+                                                                         function(y) 
+  calculate_pd(as.character(x), y, test_btg2010_list[[1]])))
+
+pd_btg2010_bind <- lapply(pd_btg2010, 
+                  function(x) bind_rows(x, .id = "model")) %>% 
+  bind_rows() %>% data.frame()
+
+# save partial dependence results
+write_csv(pd_btg2010_bind, file = "results/all_model_evaluation_20220304/btg2010_pd.csv")
+
+## Current GTGR
+pd_gtg2010 <- lapply(avg_var_gtg2010_import$variable, function(x) lapply(rf_gtg2010_list,
+                                                                         function(y) 
+  calculate_pd(as.character(x), y, test_gtg2010_list[[1]])))
+
+pd_gtg2010_bind <- lapply(pd_gtg2010, 
+                  function(x) bind_rows(x, .id = "model")) %>% 
+  bind_rows() %>% data.frame()
+
+# save partial dependence results
+write_csv(pd_gtg2010_bind, file = "results/all_model_evaluation_20220304/gtg2010_pd.csv")
+
+## Historic BTGR
+pd_btg1970 <- lapply(avg_var_btg1970_import$variable, function(x) lapply(rf_btg1970_list,
+                                                                         function(y) 
+  calculate_pd(as.character(x), y, test_btg1970_list[[1]])))
+
+pd_btg1970_bind <- lapply(pd_btg1970, 
+                  function(x) bind_rows(x, .id = "model")) %>%
+  bind_rows() %>% data.frame()
+
+# save partial dependence results
+write_csv(pd_btg1970_bind, file = "results/all_model_evaluation_20211103/btg1970_pd.csv")
+
+## Historic GTGR
+pd_gtg1970 <- lapply(avg_var_gtg1970_import$variable, function(x) lapply(rf_gtg1970_list,
+                                                                         function(y) 
+  calculate_pd(as.character(x), y, test_gtg1970_list[[1]])))
+
+pd_gtg1970_bind <- lapply(pd_gtg1970, 
+                  function(x) bind_rows(x, .id = "model")) %>% 
+  bind_rows() %>% data.frame()
+
+# save partial dependence results
+write_csv(pd_gtg1970_bind, file = "results/all_model_evaluation_20211103/gtg1970_pd.csv")
+```
+
+### Habitat Suitability Prediction
+
+```{r, eval = FALSE}
+# prepare prediction surfaces
+
+# load 2019 prediction surface
+pred_surface2019 <- read_csv("data/env/full_prediction_surface2019_20220304.csv")
+pred_surface1979 <- read_csv("data/env/full_prediction_surface70_20210826.csv")
+
+# get raster for surface
+r <- raster("data/env/prediction-surface.tif")
+
+# create function to predict habitat suitability
+hab_suit <- function(models, year, pred_surface, tpeak){
+pred_surface_eff <- pred_surface %>% 
+  dplyr::mutate(observation_date = ymd(str_glue(paste0(year,"-04-01"))),
+                year = year(observation_date),
+                day_of_year = yday(observation_date),
+                time_observations_started = tpeak,
+                duration_minutes = 60,
+                effort_distance_km = 1,
+                number_observers = 1)
+
+pred_surface_eff <- pred_surface_eff[complete.cases(pred_surface_eff),]
+
+# predict
+pred_rf <- lapply(models, function(x) predict(x, data = pred_surface_eff, 
+                                              type = "response"))
+pred_rf_pred <- lapply(pred_rf, function(x) x$prediction[, 2]) %>% bind_cols()
+colnames(pred_rf_pred) <- paste0("model", 1:10)
+
+# add to prediction surface
+pred_er <- bind_cols(pred_surface_eff, encounter_rate = rowMeans(pred_rf_pred),
+                     encounter_sd = apply(pred_rf_pred, 1, sd)) %>% 
+  dplyr::select(latitude, longitude, encounter_rate, encounter_sd)
+
+# convert to spatial object
+r_pred <- pred_er %>% 
+  # convert to spatial features
+  st_as_sf(coords = c("longitude", "latitude"), crs = 4326) %>% 
+  st_transform(crs = projection(r)) %>% 
+  # rasterize
+  rasterize(r)
+r_pred <- r_pred[[-1]]
+
+return(r_pred)
+}
+
+# predict habitat suitability for each model
+
+## Current BTGR
+btg2010_pred <- hab_suit(rf_btg2010_list, 2019, pred_surface2019, 5)
+writeRaster(btg2010_pred, "results/all_model_evaluation_20220304/btg2010_pred.tif", 
+            overwrite = TRUE)
+
+btg2010_1970data_pred <- hab_suit(rf_btg2010_list, 2019, pred_surface1979, 5)
+writeRaster(btg2010_1970data_pred,
+            "results/all_model_evaluation_20220304/btg2010_1970data_pred.tif", 
+            overwrite = TRUE)
+
+## Current GTGR
+gtg2010_pred <- hab_suit(rf_gtg2010_list, 2019, pred_surface2019, 4)
+writeRaster(gtg2010_pred, "results/all_model_evaluation_20220304/gtg2010_pred.tif", 
+            overwrite = TRUE)
+
+gtg2010_1970data_pred <- hab_suit(rf_gtg2010_list, 2019, pred_surface1979, 4)
+writeRaster(gtg2010_1970data_pred,
+            "results/all_model_evaluation_20220304/gtg2010_1970data_pred.tif", 
+            overwrite = TRUE)
+
+## Historic BTGR
+btg1970_pred <- hab_suit(rf_btg1970_list, 1979, pred_surface1979, 5)
+writeRaster(btg1970_pred, "results/all_model_evaluation_20211103/btg2010_pred.tif", 
+            overwrite = TRUE)
+
+btg1970_2010data_pred <- hab_suit(rf_btg1970_list, 1979, pred_surface2010, 5)
+writeRaster(btg1970_2010data_pred,
+            "results/all_model_evaluation_20211103/btg1970_2010data_pred.tif", 
+            overwrite = TRUE)
+
+## Historic GTGR
+gtg1970_pred <- hab_suit(rf_gtg1970_list, 1979, pred_surface1979, 4)
+writeRaster(gtg1970_pred, "results/all_model_evaluation_20211103/gtg2010_pred.tif", 
+            overwrite = TRUE)
+
+gtg1970_2010data_pred <- hab_suit(rf_gtg1970_list, 1979, pred_surface2010, 4)
+writeRaster(gtg1970_2010data_pred,
+            "results/all_model_evaluation_20211103/gtg1970_2010data_pred.tif", 
+            overwrite = TRUE)
+
+```
+
+
+# Niche Breadth Quantification
+
+For niche breadth quantification, we re-examined the location where either species is observed and extracted the land cover value at each location. We then calculated the frequency of each land cover value and compared this frequency to the overall abundance of each land cover class in 1979 and 2019.
+
+```{r, eval = FALSE}
+# Start with btg records
+
+btg_ebird_zf <- read_csv("data/eBird/btg_ebird_zf.csv") %>% data.frame()
+
+# filter for observed points within the time periods
+
+btg1970 <- filter(btg_ebird_zf, species_observed, year >= 1970, year <= 1979,
+                  grepl("US-", state_code))
+
+btg2010 <- filter(btg_ebird_zf, species_observed, year >= 2010, year <= 2019,
+                  grepl("US-", state_code))
+
+# clear memory of overly large objects
+rm(btg_ebird_zf)
+
+# remove duplicated location-year records
+btg1970 <- btg1970[!duplicated(paste(btg1970$locality_id, btg1970$year)), ]
+
+btg2010 <- btg2010[!duplicated(paste(btg2010$locality_id, btg2010$year)), ]
+
+# repeat with gtg
+
+gtg_ebird_zf <- read_csv("data/eBird/gtg_ebird_zf.csv") %>% data.frame()
+
+# filter for observed points within the time periods
+
+gtg1970 <- filter(gtg_ebird_zf, species_observed, year >= 1970, year <= 1979,
+                  grepl("US-", state_code))
+
+gtg2010 <- filter(gtg_ebird_zf, species_observed, year >= 2010, year <= 2019,
+                  grepl("US-", state_code))
+
+# clear memory of overly large objects
+rm(gtg_ebird_zf)
+
+# remove duplicated location-year records
+gtg1970 <- gtg1970[!duplicated(paste(gtg1970$locality_id, gtg1970$year)), ]
+
+gtg2010 <- gtg2010[!duplicated(paste(gtg2010$locality_id, gtg2010$year)), ]
+
+
+# load landcover data
+
+landcover2010 <- stack("data/env/landcover2010s_20220304.tif")
+landcover1970 <- stack("data/env/landcover70.tif")
+
+names(landcover2010) <- paste0("y", c(2011, 2013, 2016, 2019))
+names(landcover1970) <- paste0("y", 1970:1979)
+
+# convert occurrence locations to spatial points
+
+gtg2010.sf <- gtg2010 %>% select(longitude, latitude, year) %>% 
+  mutate(year = paste0("y", year)) %>% st_as_sf(coords = c("longitude", "latitude"), 
+                                                crs = 4326) %>%
+  st_transform(crs = projection(landcover2010))
+
+btg2010.sf <- btg2010 %>% select(longitude, latitude, year) %>% 
+  mutate(year = paste0("y", year)) %>% st_as_sf(coords = c("longitude", "latitude"), 
+                                                crs = 4326) %>%
+  st_transform(crs = projection(landcover2010))
+
+gtg1970.sf <- gtg1970 %>% select(longitude, latitude, year) %>% 
+  mutate(year = paste0("y", year)) %>% st_as_sf(coords = c("longitude", "latitude"), 
+                                                crs = 4326) %>%
+  st_transform(crs = projection(landcover1970))
+
+btg1970.sf <- btg1970 %>% select(longitude, latitude, year) %>% 
+  mutate(year = paste0("y", year)) %>% st_as_sf(coords = c("longitude", "latitude"), 
+                                                crs = 4326) %>%
+  st_transform(crs = projection(landcover1970))
+
+# convert years for the current data
+
+year_convert <- c(rep("y2011", 2), rep("y2013", 3), rep("y2016", 3), rep("y2019", 2))
+names(year_convert) <- paste("y", 2010:2019, sep="")
+
+btg2010.sf$year <-year_convert[btg2010.sf$year]
+gtg2010.sf$year <-year_convert[gtg2010.sf$year]
+
+# extract land cover values
+
+btg1970.sf$lc <- laply(1:dim(btg1970.sf)[1], function(x)
+  raster::extract(landcover1970[[btg1970.sf[x,]$year]], btg1970.sf[x,]))
+
+gtg1970.sf$lc <- laply(1:dim(gtg1970.sf)[1], function(x)
+  raster::extract(landcover1970[[gtg1970.sf[x,]$year]], gtg1970.sf[x,]))
+
+btg2010.sf$lc <- laply(1:dim(btg2010.sf)[1], function(x)
+  raster::extract(landcover2010[[btg2010.sf[x,]$year]], btg2010.sf[x,]))
+
+gtg2010.sf$lc <- laply(1:dim(gtg2010.sf)[1], function(x)
+  raster::extract(landcover2010[[gtg2010.sf[x,]$year]], gtg2010.sf[x,])[1])
+
+
+save(btg1970.sf, gtg1970.sf, btg2010.sf, gtg2010.sf,
+     file = "results/niche_breadth_20220302/lc_extract.rdata")
+
+# create summary of which land cover each species is found in
+
+# get rid of NAs in gtg2010
+gtg2010.sf <- filter(gtg2010.sf, !is.na(gtg2010.sf$lc))
+
+land_use <- data.frame(pland_01_water = c(sum(btg1970.sf$lc == 1), 
+                                          sum(gtg1970.sf$lc == 1),
+                                       sum(btg2010.sf$lc == 1), sum(gtg2010.sf$lc == 1)),
+                       pland_02_urban = c(sum(btg1970.sf$lc == 2), 
+                                          sum(gtg1970.sf$lc == 2),
+                                          sum(btg2010.sf$lc == 2), 
+                                          sum(gtg2010.sf$lc == 2)),
+                       pland_07_barren = c(sum(btg1970.sf$lc == 7 | btg1970.sf$lc == 6), 
+                                          sum(gtg1970.sf$lc == 7 | gtg1970.sf$lc == 6),
+                                          sum(btg2010.sf$lc == 7), 
+                                          sum(gtg2010.sf$lc == 7)),
+                       pland_08_deciduous_forest = c(sum(btg1970.sf$lc == 4), 
+                                                     sum(gtg1970.sf$lc == 4),
+                                          sum(btg2010.sf$lc == 4), 
+                                          sum(gtg2010.sf$lc == 4)),
+                       pland_09_evergreen_forest = c(sum(btg1970.sf$lc == 9), 
+                                                     sum(gtg1970.sf$lc == 9),
+                                          sum(btg2010.sf$lc == 9), 
+                                          sum(gtg2010.sf$lc == 9)),
+                       pland_10_mixed_forest = c(sum(btg1970.sf$lc == 10),
+                                                 sum(gtg1970.sf$lc == 10),
+                                          sum(btg2010.sf$lc == 10), 
+                                          sum(gtg2010.sf$lc == 10)),
+                       pland_11_grassland = c(sum(btg1970.sf$lc == 11), 
+                                              sum(gtg1970.sf$lc == 11),
+                                          sum(btg2010.sf$lc == 11), 
+                                          sum(gtg2010.sf$lc == 11)),
+                       pland_12_shrubland = c(sum(btg1970.sf$lc == 12), 
+                                              sum(gtg1970.sf$lc == 12),
+                                          sum(btg2010.sf$lc == 12), 
+                                          sum(gtg2010.sf$lc == 12)),
+                       pland_13_cultivated_crops = c(sum(btg1970.sf$lc == 13), 
+                                                     sum(gtg1970.sf$lc == 13),
+                                          sum(btg2010.sf$lc == 13), 
+                                          sum(gtg2010.sf$lc == 13)),
+                       pland_14_pasture = c(sum(btg1970.sf$lc == 14), 
+                                            sum(gtg1970.sf$lc == 14),
+                                          sum(btg2010.sf$lc == 14), 
+                                          sum(gtg2010.sf$lc == 14)),
+                       pland_15_herbaceous_wetland = c(sum(btg1970.sf$lc == 15), 
+                                                       sum(gtg1970.sf$lc == 15),
+                                          sum(btg2010.sf$lc == 15), 
+                                          sum(gtg2010.sf$lc == 15)),
+                       pland_16_woody_wetland = c(sum(btg1970.sf$lc == 16), 
+                                                  sum(gtg1970.sf$lc == 16),
+                                          sum(btg2010.sf$lc == 16), 
+                                          sum(gtg2010.sf$lc == 16)),
+                       pland_17_ice_snow = c(sum(btg1970.sf$lc == 17), 
+                                             sum(gtg1970.sf$lc == 17),
+                                          sum(btg2010.sf$lc == 17), 
+                                          sum(gtg2010.sf$lc == 17)),
+                       species = c("btg", "gtg", "btg", "gtg"), 
+                       year = c(1970, 1970, 2010, 2010),
+                       n = c(232, 261, 77388, 115949))
+
+land_use.melt <- melt(land_use, id.vars = c("species", "year", "n"))
+
+land_use.melt$prop <- land_use.melt$value/land_use.melt$n
+
+# get the change in proportion
+
+land_use.change <- group_by(land_use.melt, species, variable) %>% 
+  dplyr::summarize(change = prop[2] - prop[1]) %>% data.frame()
+
+# calculate change in land cover across species ranges
+lc1970 <- stack("data/env/landcover70.tif")
+lc2010 <- stack("data/env/landcover2010s_20220304.tif")
+
+# crop rasters to species ranges
+load("data/env/gtg_range.rdata")
+load("data/env/btg_range.rdata")
+
+btg_range <- st_sf(btg_range)
+gtg_range <- st_sf(gtg_range)
+
+lc1970btg <- crop(lc1970, btg_range) %>% mask(btg_range)
+lc1970gtg <- crop(lc1970, gtg_range) %>% mask(gtg_range)
+lc2010btg <- crop(lc2010, btg_range) %>% mask(btg_range)
+lc2010gtg <- crop(lc2010, gtg_range) %>% mask(gtg_range)
+
+
+# calculate the land coverage across the maps
+lc1970btg_count <- table(values(lc1970btg))
+lc1970gtg_count <- table(values(lc1970gtg))
+lc2010btg_count <- table(values(lc2010btg))
+lc2010gtg_count <- table(values(lc2010gtg))
+
+
+save(lc1970btg_count,lc1970gtg_count, lc2010btg_count, lc2010gtg_count,
+     file = "results/niche_breadth_20220302/lc_map_extract.rdata")
+
+# convert the land cover classes to be consistent with all uses
+
+lc1970btg_count <- append(lc1970btg_count, 0)
+lc1970btg_count["7"] <- lc1970btg_count["7"] + lc1970btg_count["6"]
+lc1970btg_count <- lc1970btg_count[-4]
+names(lc1970btg_count)[14] <- "17"
+
+lc1970gtg_count["7"] <- lc1970gtg_count["7"] + lc1970gtg_count["6"]
+lc1970gtg_count <- lc1970gtg_count[-4]
+
+lc2010btg_count <- append(lc2010btg_count, 0)
+names(lc2010btg_count)[14] <- "17"
+
+lc_map <- rbind(lc1970btg_count, lc1970gtg_count) %>% rbind(lc2010btg_count) %>%
+  rbind(lc2010gtg_count) %>% data.frame()
+
+lc_map <- lc_map[,-1]
+colnames(lc_map) <- colnames(land_use[1:13])
+lc_map$year <- c(1970, 1970, 2010, 2010)
+lc_map$species <- c("btg", "gtg", "btg", "gtg")
+lc_map$n <- rowSums(lc_map[, 1:13])
+
+lc_map.melt <- melt(lc_map, id.vars = c("species", "year", "n"))
+lc_map.melt$prop <- lc_map.melt$value/lc_map.melt$n
+
+land_use_map.change <- group_by(lc_map.melt, species, variable) %>% 
+  dplyr::summarize(change = prop[2] - prop[1]) %>% data.frame()
+
+land_use.change$map_change <- land_use_map.change$change
+
+land_use.change$per1970 <- filter(land_use.melt, year == 1970) %>% 
+  {.[order(.$species),]$prop}
+land_use.change$per2010 <- filter(land_use.melt, year == 2010) %>% 
+  {.[order(.$species),]$prop}
+
+# save the resulting change in proportional land cover
+
+write_csv(land_use.change, file = "results/niche_breadth_20220302/land_cover_change.csv")
+
+```
+
+# Habitat Connectivity
+
+To calculate connectivity over the species ranges, we used Circuitscape 4.0.2. This program requires a resistance surface and nodes for the current to travel between. We used a process where we selected random nodes from a 600 km buffer perimeter around each checklist range to ensure that the nodes we selected did not impact the connectivity values we calculated.
+
+## Create Resistance Surface and Nodes
+
+```{r, eval = FALSE}
+# set model
+model <- "gtg2010"
+
+# load prediction surface
+pred <- raster(paste0("results/all_model_evaluation_20220304/b", model, "_pred.tif"))
+
+# convert prediction surface to resistance
+res <- 100 - 99*((1 - exp(-16*pred))/(1 - exp(-16)))
+
+# load species range
+load(paste0("data/env/", substr(model, 1, 3), "_range.rdata"))
+range <- st_as_sf(gtg_range)
+
+## create buffered species range
+# crop and mask resistance surface to species range
+res_crop <- res %>% raster::crop(range) %>% raster::mask(range)
+
+# convert resistance surface to a uniform raster and then a polygon
+rangeRaster <- res_crop > -Inf
+
+rangePoly <- rasterToPolygons(rangeRaster, dissolve = TRUE)
+
+# create buffer around study area of 600 km (240 cells, ~ 20% of the North South side)
+rangeBuffer <- gBuffer(rangePoly, width = 600000)
+
+# save resulting buffer
+save(rangePoly, rangeBuffer, file = "data/env/gtg_range_buffer_600km.rdata")
+
+# extent resistance surface to fit buffer
+res_extend <- extend(res, rangeBuffer)
+
+# set background value
+res_extend[is.na(res_extend)] <- 50
+
+# crop and mask extended resistance surface to buffer
+res_extend <- crop(res_extend, rangeBuffer) %>% mask(rangeBuffer)
+
+# add projection to res
+
+# save resulting resistance surface
+writeRaster(res_extend, file = "data/connectivity_2022/gtg2010_res_600km.asc", 
+            overwrite = TRUE)
+
+# convert buffer to spatial line
+buffer <- as(rangeBuffer, 'SpatialLines')
+
+# get cells along buffer
+buffer_pts <- raster::extract(res, buffer, cellnumbers = TRUE) %>% data.frame()
+
+# select 20 random cells
+select_buffer <- sample(filter(buffer_pts, !is.na(gtg2010_res_600km))$cell, 18)
+
+# create node raster
+node <- res
+node[!is.na(node)] <- NA
+
+# assign values to selected cells
+node[select_buffer] <- 1:18
+
+# project node map
+projection(node) <- projection(r)
+
+# save selected nodes
+writeRaster(node, file = "data/connectivity_2022/gtg_node_18_600km.asc")
+
+# create resistance surface for 1970s connectivity
+
+# load prediction surface
+pred1970 <- raster("results/all_model_evaluation_20220304/gtg2010_1970data_pred.tif")
+
+# convert prediction surface to resistance
+res1970 <- 100 - 99*((1 - exp(-16*pred1970))/(1 - exp(-16)))
+
+# extent resistance surface to fit buffer
+res1970_extend <- extend(res1970, rangeBuffer)
+
+# set background value
+res1970_extend[is.na(res1970_extend)] <- 50
+
+# crop and mask extended resistance surface to buffer
+res1970_extend <- crop(res1970_extend, rangeBuffer) %>% mask(rangeBuffer)
+
+# save resulting resistance surface
+writeRaster(res1970_extend, file = "data/connectivity_2022/gtg1970_res_600km.asc",
+            overwrite = TRUE)
+
+
+### repeat for BTGR
+
+# set model
+model <- "btg2010"
+
+# load prediction surface
+pred <- raster(paste0("results/all_model_evaluation_20220304/", model, "_pred.tif"))
+
+# convert prediction surface to resistance
+res <- 100 - 99*((1 - exp(-16*pred))/(1 - exp(-16)))
+
+# load species range
+load(paste0("data/env/", substr(model, 1, 3), "_range.rdata"))
+range <- st_as_sf(btg_range)
+
+## create buffered species range
+# crop and mask resistance surface to species range
+res_crop <- res %>% crop(range) %>% mask(range)
+
+# convert resistance surface to a uniform raster and then a polygon
+rangeRaster <- res_crop > -Inf
+
+rangePoly <- rasterToPolygons(rangeRaster, dissolve = TRUE)
+
+# create buffer around study area of 600 km (240 cells, ~ 20% of the North South side)
+rangeBuffer <- gBuffer(rangePoly, width = 600000)
+
+# save resulting buffer
+save(rangePoly, rangeBuffer, file = "data/env/btg_range_buffer_600km.rdata")
+
+# extent resistance surface to fit buffer
+res_extend <- extend(res, rangeBuffer)
+
+# set background value
+res_extend[is.na(res_extend)] <- 50
+
+# crop and mask extended resistance surface to buffer
+res_extend <- crop(res_extend, rangeBuffer) %>% mask(rangeBuffer)
+
+# add projection to res
+
+# save resulting resistance surface
+writeRaster(res_extend, file = "data/connectivity_2022/btg2010_res_600km.asc",
+            overwrite = TRUE)
+
+# convert buffer to spatial line
+buffer <- as(rangeBuffer, 'SpatialLines')
+
+# get cells along buffer
+buffer_pts <- raster::extract(res, buffer, cellnumbers = TRUE) %>% data.frame()
+
+# select 18 random cells
+select_buffer <- sample(filter(buffer_pts, !is.na(btg2010_res_600km))$cell, 18)
+
+# create node raster
+node <- res
+node[!is.na(node)] <- NA
+
+# assign values to selected cells
+node[select_buffer] <- 1:18
+
+# project node map
+projection(node) <- projection(r)
+
+# save selected nodes
+writeRaster(node, file = "data/connectivity_2022/btg_node_18_600km.asc")
+
+# create resistance surface for 1970s connectivity
+
+# load prediction surface
+pred1970 <- raster("results/all_model_evaluation_20220304/btg2010_1970data_pred.tif")
+
+# convert prediction surface to resistance
+res1970 <- 100 - 99*((1 - exp(-16*pred1970))/(1 - exp(-16)))
+
+# extent resistance surface to fit buffer
+res1970_extend <- extend(res1970, rangeBuffer)
+
+# set background value
+res1970_extend[is.na(res1970_extend)] <- 50
+
+# crop and mask extended resistance surface to buffer
+res1970_extend <- crop(res1970_extend, rangeBuffer) %>% mask(rangeBuffer)
+
+# save resulting resistance surface
+writeRaster(res1970_extend, file = "data/connectivity_2022/btg1970_res_600km.asc",
+            overwrite = TRUE)
+
+```
+
+## Curcuitscape Parameters
+
+We used the Windows 64 bit executable version of Circuitscape with the following parameters:
+
+- Input data set to Raster
+
+- Modelling mode set to Pairwise
+
+- Output current maps
+
+We used the cumulative current maps generated for all plotting. The maps are saved within **results/connectivity_results_20220509**
+
+
+# Data Visualization
+
+Within this section is all the code used to generate the figures within the text of Summers et al. 2022 and its supplemental material. 
+
+For all mapping we used base shapefiles from Natural Earth downloaded from Strimas-Mackey et al. 2020 section 1 and located in **data/env/gis-data.gpkg**
+
+First we created a set of labels and color palettes that will be used in several plots
+
+```{r}
+# create environmental labels
+envLabel <- c("Mean Diurnal Range", "Max Temp. Warm Month", 
+              "Mean Temp. Wet Quart.", "Mean Temp. Dry Quart.", "Precip. Wet Month",
+              "Precip. Dry Month","Precip. Cold Quart.", 
+              "Elevation",
+              "Dist. to River/Lake", "Distance to Coast",
+              "Year", "Day of Year", "Obs. Time", "Obs. Duration", 
+              "Travel Dist.",
+              "Obs. Number", "Water Cover",
+              "Urban", "Barren", "Evergreen Forest", "Shrubland", "Cropland",
+              "Pasture", "Mixed Forest", "Grassland", "Deciduous Forest", 
+              "Herbaceous Wetland",
+              "Woody Wetland", "Ice/Snow")
+
+names(envLabel) <- c("bio2", "bio5", "bio8", "bio9", "bio13", "bio14", "bio19", 
+                     "elevation_median",
+                     "fresh", "coast",
+                     "year", "day_of_year", "time_observations_started", 
+                     "duration_minutes",
+                     "effort_distance_km", "number_observers", "pland_01_water",
+                     "pland_02_urban",
+                     "pland_07_barren", "pland_09_evergreen_forest", 
+                     "pland_12_shrubland",
+                     "pland_13_cultivated_crops", "pland_14_hay_pasture", 
+                     "pland_10_mixed_forest",
+                     "pland_11_grassland", "pland_08_deciduous_forest", 
+                     "pland_15_herbaceous_wetland",
+                     "pland_16_woody_wetland", "pland_17_ice_snow")
+
+sourceLabel <- c("Clim", "Clim", "Clim", "Clim", "Clim", "Clim", "Clim",
+                 "Topo", "Hydro", "Hydro", "Effort",
+                 "Effort", "Effort", "Effort", "Effort", "Effort", rep("LC",13))
+
+names(sourceLabel) <- c("bio2", "bio5", "bio8", "bio9", "bio13", "bio14", "bio19", 
+                        "elevation_median",
+                        "fresh", "coast", 
+                        "year", "day_of_year", "time_observations_started", 
+                        "duration_minutes",
+                        "effort_distance_km", "number_observers", "pland_01_water",
+                        "pland_02_urban",
+                        "pland_07_barren", "pland_09_evergreen_forest", 
+                        "pland_12_shrubland",
+                        "pland_13_cultivated_crops", "pland_14_hay_pasture", 
+                        "pland_10_mixed_forest",
+                        "pland_11_grassland", "pland_08_deciduous_forest", 
+                        "pland_15_herbaceous_wetland",
+                        "pland_16_woody_wetland", "pland_17_ice_snow")
+  
+sourceColor <- c("#DDCC77", "#CC6677", "#6699CC", "#117733", "#888888")
+names(sourceColor) <- c("Clim", "Effort", "Hydro", "LC", "Topo")
+```
+
+
+## Cross-Validation and Transferability Plot
+
+```{r, eval = FALSE}
+# discrimination ability
+
+btg2010_disc <- read_csv("results/all_model_evaluation_20220304//btg2010_disc.csv")
+gtg2010_disc <- read_csv("results/all_model_evaluation_20220304/gtg2010_disc.csv")
+btg1970_disc <- read_csv("results/aim1_2_figures_20211103/btg1970_disc.csv")
+gtg1970_disc <- read_csv("results/aim1_2_figures_20211103/gtg1970_disc.csv")
+btg2010_cross_disc <- 
+  read_csv("results/all_model_evaluation_20220304/btg2010_cross_disc.csv")
+gtg2010_cross_disc <- 
+  read_csv("results/all_model_evaluation_20220304//gtg2010_cross_disc.csv")
+btg1970_cross_disc <- read_csv("results/aim1_2_figures_20211103/btg1970_cross_disc.csv")
+gtg1970_cross_disc <- read_csv("results/aim1_2_figures_20211103/gtg1970_cross_disc.csv")
+
+
+# combine discrimination assessments
+disc_assess <- rbind(mutate(btg2010_disc, models = "btg2010"),
+                     mutate(gtg2010_disc, models = "gtg2010")) %>%
+  rbind(mutate(btg1970_disc, models = "btg1970")) %>%
+  rbind(mutate(gtg1970_disc, models = "gtg1970")) %>%
+  rbind(mutate(btg2010_cross_disc, models = "btg2010_cross")) %>%
+  rbind(mutate(gtg2010_cross_disc, models = "gtg2010_cross")) %>%
+  rbind(mutate(gtg1970_cross_disc, models = "gtgCross_1970")) %>%
+  rbind(mutate(btg1970_cross_disc, models = "btgCross_1970")) %>%
+  melt(id.vars = c("model", "models")) %>%
+  group_by(models, variable) %>% dplyr::summarize(mean = mean(value), sd = sd(value))
+
+disc_assess$models <- factor(disc_assess$models, 
+                             levels = c("btg1970", "btgCross_1970", "btg2010_cross", 
+                                        "btg2010",
+                                        "gtg1970", "gtgCross_1970", "gtg2010_cross", 
+                                        "gtg2010"))
+# create plot to compare models
+# plot will be added to the suitable habitat map
+disc_plot<- ggplot(filter(disc_assess, 
+                           !variable %in% c("mse", "sensitivity", "specificity")) , 
+       aes(x = models, y = mean, col = models, pch = models))+
+  geom_point(size = 3)+
+  geom_errorbar(aes(ymin = mean - sd, ymax = mean + sd), size = 1, width = 0.4)+
+  theme_bw() + 
+  theme(panel.grid.major.x = element_line(colour = "#cccccc", size = 0.5),
+        text = element_text(size = 20),
+        axis.text.x = element_blank(),
+        axis.ticks.x = element_blank(),
+        legend.title = element_text(size = 16, hjust = -0.05)) +
+  scale_shape_manual(values = c(19, 19, 19, 19, 17, 17, 17, 17),
+                     labels = c("", "",
+                                "", "",
+                                "Historic", "Historic Forecast",
+                                "Current Backcast", "Current"),
+                     limits = c("btg1970", "btgCross_1970", "btg2010_cross", "btg2010",
+                                "gtg1970", "gtgCross_1970", "gtg2010_cross", "gtg2010"))+
+  scale_color_manual(values = c("#053061", "#2166AC", "#4393C3", "#92C5DE",
+                                "#67001F", "#B2182B", "#D6604D", "#F4A582"),
+                     labels = c("", "",
+                                "", "",
+                                "Historic", "Historic Forecast",
+                                "Current Backcast", "Current"),
+                     limits = c("btg1970", "btgCross_1970", "btg2010_cross", "btg2010",
+                                "gtg1970", "gtgCross_1970", "gtg2010_cross", "gtg2010"))+
+  labs(x = "", y = "", col = "BTGR  GTGR", pch = "BTGR  GTGR")+
+  guides(col = guide_legend(ncol = 2, keywidth = 2.3, keyheight = 0.5), 
+         pch = guide_legend(ncol = 2, keywidth = 2.3, keyheight = 0.5)) +
+  facet_wrap(.~ variable, scales = "free_y", labeller = 
+               labeller(variable = c(mse = "Mean Squared Error",
+                                     kappa = "Kappa",
+                                     sensitivity = "Sensitivity",
+                                     specificity = "Specificity",
+                                     auc = "AUC")))
+```
+
+
+## Predictor Importance Plot
+
+```{r, eval = FALSE}
+# load importance results
+# modern importance
+btg2010_import <- read_csv("results/all_model_evaluation_20220304/btg2010_var_import.csv")
+gtg2010_import <- read_csv("results/all_model_evaluation_20220304//gtg2010_var_import.csv")
+
+# historic importance
+btg1970_import <- read_csv("results/aim1_2_figures_20211103/btg1970_var_import.csv")
+gtg1970_import <- read_csv("results/aim1_2_figures_20211103/gtg1970_var_import.csv")
+
+# average importance values and establish ranks
+btg2010_import <- mutate(btg2010_import, rel_import = avg/sum(avg), 
+                         rel_sd = sd/sum(avg), model = "btg2010",
+                         ranks = rank(rel_import), unique_ranks = rank(rel_import))
+
+gtg2010_import <- mutate(gtg2010_import, rel_import = avg/sum(avg),
+                         rel_sd = sd/sum(avg), model = "gtg2010",
+                         ranks = btg2010_import$ranks, unique_ranks = rank(rel_import))
+
+
+btg1970_import <- mutate(btg1970_import, rel_import = avg/sum(avg), 
+                         rel_sd = sd/sum(avg), model = "btg1970",
+                         ranks = btg2010_import[match(btg1970_import$variable,
+                                                      btg2010_import$variable),]$ranks, 
+                         unique_ranks = rank(rel_import))
+
+gtg1970_import <- mutate(gtg1970_import, rel_import = avg/sum(avg),
+                         rel_sd = sd/sum(avg), model = "gtg1970",
+                         ranks = gtg2010_import[match(gtg1970_import$variable,
+                                                      gtg2010_import$variable),
+                                                ]$unique_ranks, 
+                         unique_ranks = gtg2010_import[match(gtg1970_import$variable,
+                                                             gtg2010_import$variable),
+                         ]$unique_ranks)
+
+# get top 8 variables for both modern models
+btg2010_top8 <- btg2010_import[order(btg2010_import$rel_import,
+                                     decreasing = TRUE)[1:8], ]$variable
+
+gtg2010_top8 <- gtg2010_import[order(gtg2010_import$rel_import,
+                                     decreasing = TRUE)[1:8], ]$variable
+
+top8_2010 <- append(btg2010_top8, gtg2010_top8) %>% unique()
+
+# get top 8 for each species
+
+btg1970_top8 <- btg1970_import[order(btg1970_import$rel_import,
+                                     decreasing = TRUE)[1:8], ]$variable
+
+gtg1970_top8 <- gtg1970_import[order(gtg1970_import$rel_import,
+                                     decreasing = TRUE)[1:8], ]$variable
+
+top8_BTGR <- append(btg2010_top8, btg1970_top8) %>% unique()
+top8_GTGR <- append(gtg2010_top8, gtg1970_top8) %>% unique()
+
+all_top8 <- c(btg2010_top8, gtg2010_top8, gtg1970_top8, btg1970_top8) %>% unique()
+
+# combine importance results
+piAll <- rbind(btg2010_import, btg1970_import) %>% rbind(gtg2010_import) %>%
+  rbind(gtg1970_import)
+piAll$source <- sourceLabel[piAll$variable]
+piAll$ranks <- btg1970_import[match(piAll$variable, 
+                                    btg1970_import$variable), ]$unique_ranks
+
+piAll$source_num <- laply(piAll$source, function(x) substr(x, 1,1) %>% charToRaw() 
+                          %>% as.numeric() %>% sum())
+  
+
+# plot results
+# use the pdf function to save the resulting plot as a pdf
+pdf(file = "results/aim1_2_figures_20211103/piAll_plot_20220314.pdf",
+    width = 14,
+    height = 8.5)
+
+ggplot(piAll) + 
+  aes(x = fct_reorder(variable, ranks - source_num*100), 
+      y = rel_import, fill = source) +
+  geom_col() +
+  scale_x_discrete(labels = envLabel)+
+  geom_hline(yintercept = 0, size = 2, colour = "#555555") +
+  scale_y_continuous(labels = scales::percent_format(1)) +
+  scale_fill_manual(values = sourceColor, labels = c("Climate",
+                                                     "Effort",
+                                                     "Hydrology",
+                                                     "Land Cover",
+                                                     "Elevation")) +
+  coord_flip() +
+  labs(x = NULL, 
+       y = "Relative Predictor Importance",
+       fill = "Variable\nClass") +
+  theme_minimal() +
+  theme(panel.grid = element_blank(),
+        panel.grid.major.x = element_line(colour = "#cccccc", size = 0.5),
+        text = element_text(size = 20))+
+  facet_grid(.~ model, 
+             labeller = labeller(model = c(btg2010 = "BTGR Current", 
+                                           gtg2010 = "GTGR Current",
+                                           btg1970 = "BTGR Historic",
+                                           gtg1970 = "GTGR Historic")))
+
+dev.off()
+```
+
+## Partial Dependence Plots
+
+```{r, eval = FALSE}
+# load partial dependence data for modern models
+gtg2010_pd <- read_csv("results/all_model_evaluation_20220304/gtg2010_pd.csv")
+btg2010_pd <- read_csv("results/all_model_evaluation_20220304/btg2010_pd.csv")
+
+# load partial dependence data for historic models
+gtg1970_pd <- read_csv("results/aim1_2_figures_20211103/gtg1970_pd.csv")
+btg1970_pd <- read_csv("results/aim1_2_figures_20211103/btg1970_pd.csv")
+
+# average results across models and find sd
+gtg2010_pd <- group_by(gtg2010_pd, covariate, x) %>%
+  dplyr::summarize(sd = sd(pred), pred = mean(pred)) %>%
+  dplyr::mutate(model = "gtg2010", pred = pred - min(pred))
+
+btg2010_pd <- group_by(btg2010_pd, covariate, x) %>%
+  dplyr::summarize(sd = sd(pred), pred = mean(pred)) %>%
+  dplyr::mutate(model = "btg2010", pred = pred - min(pred))
+
+gtg1970_pd <- group_by(gtg1970_pd, covariate, x) %>%
+  dplyr::summarize(sd = sd(pred), pred = mean(pred)) %>%
+  dplyr::mutate(model = "gtg1970", pred = pred - min(pred))
+
+btg1970_pd <- group_by(btg1970_pd, covariate, x) %>%
+  dplyr::summarize(sd = sd(pred), pred = mean(pred)) %>%
+  dplyr::mutate(model = "btg1970", pred = pred - min(pred))
+
+pdAll <- rbind(gtg2010_pd, btg2010_pd) %>% rbind(btg1970_pd) %>% rbind(gtg1970_pd)
+
+#convert distance to water into km
+pdAll[pdAll$covariate %in% c("fresh", "coast"), "x"] <-
+  pdAll[pdAll$covariate %in% c("fresh", "coast"), "x"]/1000
+
+# plot partial dependencies
+
+
+# all models all covariates
+pdf(file = "results/aim1_2_figures_20211103/pdAll_full_20220418.pdf",
+    width = 15,
+    height = 20)
+ggplot(filter(pdAll), aes(x = x, y = pred, col = model, lty = model))+
+  geom_line(size = 1)+
+  scale_color_manual(values = c("#053061", "#92C5DE",
+                                "#67001F", "#F4A582"),
+                     labels = c("BTGR Historic", "BTGR Current",
+                                "GTGR Historic", "GTGR Current"))+
+  scale_fill_manual(values = c("#053061", "#92C5DE",
+                               "#67001F", "#F4A582"),
+                    labels = c("BTGR Historic", "BTGR Current",
+                               "GTGR Historic", "GTGR Current"))+
+  scale_linetype_manual(values = c("dashed", "solid",
+                                   "dashed", "solid"),
+                        labels = c("BTGR Historic", "BTGR Current",
+                                   "GTGR Historic", "GTGR Current"))+
+  geom_ribbon(aes(ymin = pred - sd, ymax = pred + sd, col = model, fill = model), 
+              alpha = 0.3, col = NA)+
+  labs(x = "", y = "Marginal Effect on Predicted Encounter Rate", 
+       col = "Model", fill = "Model", lty = "Model") +
+  theme_bw() +
+  theme(text = element_text(size = 20),
+        axis.text = element_text(size = 10),
+        panel.grid = element_blank(),
+        axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1),
+        panel.grid.major.x = element_line(colour = "#cccccc", size = 0.5),
+        legend.position = "none")+
+  #note: each sub-plot is about 0.17 in width
+  facet_nested_wrap(.~ covariate + substr(model, 1, 1), scales = "free_x",
+                    labeller = labeller(covariate = envLabel,
+                                        `substr(model, 1, 1)` = c(b = "BTGR", 
+                                                                  g = "GTGR")), 
+                    nrow = 7)
+dev.off()
+
+
+# all models top 8
+pdf(file = "results/aim1_2_figures_20211103/pdAll_top8_20220330.pdf",
+    width = 12,
+    height = 8.5)
+ggplot(filter(pdAll, covariate %in% all_top8), 
+       aes(x = x, y = pred, col = model, lty = model))+
+  geom_line(size = 1)+
+  scale_color_manual(values = c("#053061", "#92C5DE",
+                                "#67001F", "#F4A582"),
+                     labels = c("BTGR Historic", "BTGR Current",
+                                "GTGR Historic", "GTGR Current"))+
+  scale_fill_manual(values = c("#053061", "#92C5DE",
+                                "#67001F", "#F4A582"),
+                     labels = c("BTGR Historic", "BTGR Current",
+                                "GTGR Historic", "GTGR Current"))+
+  scale_linetype_manual(values = c("dashed", "solid",
+                                   "dashed", "solid"),
+                        labels = c("BTGR Historic", "BTGR Current",
+                                   "GTGR Historic", "GTGR Current"))+
+  geom_ribbon(aes(ymin = pred - sd, ymax = pred + sd, col = model, fill = model), 
+              alpha = 0.3, col = NA)+
+  labs(x = "", y = "Marginal Effect on Suitability", 
+       col = "Model", fill = "Model", lty = "Model") +
+  theme_bw() +
+  theme(text = element_text(size = 20),
+        axis.text = element_text(size = 8),
+        axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1),
+        panel.grid = element_blank(),
+        panel.grid.major.x = element_line(colour = "#cccccc", size = 0.5),
+        legend.position = "none") +
+  facet_nested_wrap(.~ covariate + substr(model, 1, 1), scales = "free_x",
+             labeller = labeller(covariate = envLabel,
+                                 `substr(model, 1, 1)` = c(b = "BTGR", g = "GTGR")), 
+             nrow = 3)
+dev.off()
+```
+
+## Habitat Suitability Plots
+
+We prepared the background map and predicted suitability values for plotting.
+
+```{r, eval = FALSE}
+# load and project gis data
+map_proj <- st_crs(5070)
+ne_land <- read_sf("data/env/gis-data.gpkg", "ne_land") %>% 
+  st_transform(crs = map_proj) %>% 
+  st_geometry()
+ne_country_lines <- read_sf("data/env/gis-data.gpkg", "ne_country_lines") %>% 
+  st_transform(crs = map_proj) %>% 
+  st_geometry()
+ne_state_lines <- read_sf("data/env/gis-data.gpkg", "ne_state_lines") %>% 
+  st_transform(crs = map_proj) %>% 
+  st_geometry()
+
+ne_coast <- read_sf("data/env/hydro_natural_earth/ne_10m_coastline/ne_10m_coastline.shp")
+
+## get species ranges
+load("data/env/btg_range_buffer_600km.rdata")
+btgRange <- rangePoly
+load("data/env/gtg_range_buffer_600km.rdata")
+gtgRange <- rangePoly
+
+## load prediction maps
+
+# BTGR 2010 model
+btg2010_pred <- stack("results/all_model_evaluation_20220304/btg2010_pred.tif")
+names(btg2010_pred) <- c("pred", "sd")
+btg2010_pred  <- projectRaster(btg2010_pred, crs = projection(ne_land))
+
+btg2010_pred <- crop(btg2010_pred, btgRange) %>% mask(btgRange)
+
+# GTGR 2010 model
+gtg2010_pred <- stack("results/all_model_evaluation_20220304/gtg2010_pred.tif")
+names(gtg2010_pred) <- c("pred", "sd")
+gtg2010_pred  <- projectRaster(gtg2010_pred, crs = projection(ne_land))
+
+gtg2010_pred <- crop(gtg2010_pred, gtgRange) %>% mask(gtgRange)
+
+
+# BTGR 1970 model
+btg1970_pred <- stack("results/aim1_2_figures_20211103/btg1970_pred.tif")
+names(btg1970_pred) <- c("pred", "sd")
+btg1970_pred  <- projectRaster(btg1970_pred, crs = projection(ne_land))
+
+btg1970_pred <- crop(btg1970_pred, btgRange) %>% mask(btgRange)
+
+# GTGR 1970 model
+gtg1970_pred <- stack("results/aim1_2_figures_20211103/gtg1970_pred.tif")
+names(gtg1970_pred) <- c("pred", "sd")
+gtg1970_pred  <- projectRaster(gtg1970_pred, crs = projection(ne_land))
+
+gtg1970_pred <- crop(gtg1970_pred, gtgRange) %>% mask(gtgRange)
+
+
+# BTGR 2010 model 1970 data
+btg2010_1970data_pred <- stack(
+  "results/all_model_evaluation_20220304/btg2010_1970data_pred.tif")
+names(btg2010_1970data_pred) <- c("pred", "sd")
+btg2010_1970data_pred  <- projectRaster(btg2010_1970data_pred, 
+                                        crs = projection(ne_land))
+
+btg2010_1970data_pred <- crop(btg2010_1970data_pred, btgRange) %>% mask(btgRange)
+
+# BTGR 1970 model 2010 data
+btg1970_2010data_pred <- stack(
+  "results/aim1_2_figures_20211103/btg1970_2010data_pred.tif")
+names(btg1970_2010data_pred) <- c("pred", "sd")
+btg1970_2010data_pred  <- projectRaster(btg1970_2010data_pred, 
+                                        crs = projection(ne_land))
+
+btg1970_2010data_pred <- crop(btg1970_2010data_pred, btgRange) %>% mask(btgRange)
+
+# GTGR 2010 model 1970 data
+gtg2010_1970data_pred <- stack(
+  "results/all_model_evaluation_20220304/gtg2010_1970data_pred.tif")
+names(gtg2010_1970data_pred) <- c("pred", "sd")
+gtg2010_1970data_pred  <- projectRaster(gtg2010_1970data_pred, 
+                                        crs = projection(ne_land))
+
+gtg2010_1970data_pred <- crop(gtg2010_1970data_pred, gtgRange) %>% mask(gtgRange)
+
+
+# GTGR 1970 model 2010 data
+gtg1970_2010data_pred <- stack(
+  "results/aim1_2_figures_20211103/gtg1970_2010data_pred.tif")
+names(gtg1970_2010data_pred) <- c("pred", "sd")
+gtg1970_2010data_pred  <- projectRaster(gtg1970_2010data_pred, 
+                                        crs = projection(ne_land))
+
+gtg1970_2010data_pred <- crop(gtg1970_2010data_pred, gtgRange) %>% mask(gtgRange)
+
+
+# convert raster to plottable form
+btg2010_pred.df <- rasterToPoints(btg2010_pred, spatial = TRUE) %>% data.frame()
+gtg2010_pred.df <- rasterToPoints(gtg2010_pred, spatial = TRUE) %>% data.frame()
+btg1970_pred.df <- rasterToPoints(btg1970_pred, spatial = TRUE) %>% data.frame()
+gtg1970_pred.df <- rasterToPoints(gtg1970_pred, spatial = TRUE) %>% data.frame()
+btg2010_1970data_pred.df <- rasterToPoints(btg2010_1970data_pred, 
+                                           spatial = TRUE) %>% data.frame()
+btg1970_2010data_pred.df <- rasterToPoints(btg1970_2010data_pred, 
+                                           spatial = TRUE) %>% data.frame()
+gtg1970_2010data_pred.df <- rasterToPoints(gtg1970_2010data_pred, 
+                                           spatial = TRUE) %>% data.frame()
+gtg2010_1970data_pred.df <- rasterToPoints(gtg2010_1970data_pred, 
+                                           spatial = TRUE) %>% data.frame()
+```
+
+### Change in Suitability
+
+The first figure we make here presented how suitability has changed as predicted by each of our models.
+
+```{r, eval = FALSE}
+## overlap map
+
+overlap_map <- function(model1970, model2010, thresh70, thresh10, speciesRange,
+                        title){
+  # get suitable areas
+  model1970$suitable <- as.numeric(model1970$pred >= thresh70)
+  model2010$suitable <- ifelse(model2010$pred >= thresh10, 5, 0)
+  model2010$change <- model2010$suitable + model1970$suitable
+  
+  if(grepl("GTGR", title)){
+    if(grepl("Historic", title)){
+    plotCol <-  c("#888888", "#67001F", "#B2182B", "#67001F")
+    } else{
+      plotCol <-  c("#888888", "#D6604D", "#F4A582", "#D6604D")
+    }
+  } else{
+    if(grepl("Historic", title)){
+      plotCol <- c("#888888", "#053061", "#2166AC", "#053061")
+      } else{
+        plotCol <- c("#888888", "#4393C3", "#92C5DE", "#4393C3")
+      }
+  }
+  
+  # old color palette
+  c('#888888', '#9a1c65','#6767a4', '#0b450a')
+  # plot overlap map
+  ggplot() +
+  geom_sf(data = ne_land, fill = "gray38", col = "gray50", size = 0.2) +
+    geom_raster(data = model2010, aes( x = x, y = y, 
+                                             fill = as.factor(change))) +
+    geom_sf(data = ne_country_lines, col = "#ffffff") +
+    geom_sf(data = ne_state_lines, col = "#ffffff") +
+    labs(fill = "Suitability", x = "", y = "", title = title) +
+    scale_fill_manual( values = plotCol,
+                       labels = c("Remained Low", "Became Low",
+                                  "Became High", "Remained High")) +
+    coord_sf(xlim = extent(speciesRange)[1:2], 
+             ylim = extent(speciesRange)[3:4], expand = 0) +
+    # add scale bar
+    ggsn::scalebar(dist = 200, model = 'WGS84', transform = FALSE, 
+             dist_unit = "km", x.min = extent(speciesRange)[1],
+             x.max = extent(speciesRange)[2], y.min = extent(speciesRange)[3],
+             y.max = extent(speciesRange)[4],
+             location = "bottomright", st.bottom = TRUE, st.size = 4,
+             anchor = c(x = extent(speciesRange)[2] - 120000,
+                        y = extent(speciesRange)[3] + 270000)) +
+    theme(panel.grid.major = element_line(color = NA), 
+          panel.background = element_rect(fill = "white"),
+          axis.text.x=element_blank(),
+          axis.ticks.x=element_blank(),
+          axis.text.y=element_blank(),
+          axis.ticks.y=element_blank(),
+          text = element_text(size=18),
+          plot.margin = margin(3, 0, 3, 0))
+  
+}
+
+
+# generate plots
+
+gtgHistoricRange <- overlap_map(gtg1970_pred.df, gtg1970_2010data_pred.df, 0.4635, 
+                                0.4635, gtgRange, "GTGR Historic Prediction")
+
+btgHistoricRange <- overlap_map(btg1970_pred.df, btg1970_2010data_pred.df, 0.3835, 
+                                0.3835, btgRange, "BTGR Historic Prediction") +
+  geom_rect(aes(xmin = 1700000, xmax = 2000000, ymin = 1800000, ymax = 2300000),
+            size = 2, fill = NA, col = "black")
+
+gtgCurrentRange <- overlap_map(gtg2010_1970data_pred.df, gtg2010_pred.df, 0.444, 
+                                0.444, gtgRange, "GTGR Current Prediction")
+
+btgCurrentRange <- overlap_map(btg2010_1970data_pred.df, btg2010_pred.df, 0.4780, 
+                                0.4780, btgRange, "BTGR Current Prediction") +
+  geom_rect(aes(xmin = 1700000, xmax = 2000000, ymin = 1800000, ymax = 2300000),
+            size = 2, fill = NA, col = "black")
+
+# create blank theme to combine plots with
+
+blank_theme <- theme(panel.grid.major = element_line(color = NA), 
+                     panel.background = element_rect(fill = "white"),
+                     axis.text.x=element_blank(),
+                     axis.ticks.x=element_blank(),
+                     axis.text.y=element_blank(),
+                     axis.ticks.y=element_blank(),
+                     text = element_text(size=20),
+                     legend.position = "none",
+                     plot.margin = margin(3, 0, 3, 0))
+
+# create cutout-map
+
+cutout_map <- function(model1970, model2010, thresh70, thresh10, speciesRange,
+                        title){
+  # get suitable areas
+  model1970$suitable <- as.numeric(model1970$pred >= thresh70)
+  model2010$suitable <- ifelse(model2010$pred >= thresh10, 5, 0)
+  model2010$change <- model2010$suitable + model1970$suitable
+  
+  if(grepl("GTGR", title)){
+    if(grepl("Historic", title)){
+      plotCol <-  c("#888888", "#67001F", "#B2182B", "#67001F")
+    } else{
+      plotCol <-  c("#888888", "#D6604D", "#F4A582", "#D6604D")
+    }
+  } else{
+    if(grepl("Historic", title)){
+      plotCol <- c("#888888", "#053061", "#2166AC", "#053061")
+    } else{
+      plotCol <- c("#888888", "#4393C3", "#92C5DE", "#4393C3")
+    }
+  }
+  
+  
+  c('#888888', '#9a1c65','#6767a4', '#0b450a')
+  # plot overlap map
+  ggplot() +
+    geom_sf(data = ne_land, fill = "gray38", col = "gray50", size = 0.2) +
+    geom_raster(data = model2010, aes( x = x, y = y, 
+                                       fill = as.factor(change))) +
+    geom_sf(data = ne_country_lines, col = "#ffffff") +
+    geom_sf(data = ne_state_lines, col = "#ffffff") +
+    labs(x = "", y = "") +
+    scale_fill_manual( values = plotCol,
+                       labels = c("Remained Low", "Became Low",
+                                  "Became High", "Remained High")) +
+    coord_sf(xlim = c(1700000, 2000000), 
+             ylim = c(1800000, 2300000), expand = 0) +
+    theme(panel.grid.major = element_line(color = NA), 
+          panel.background = element_rect(fill = "white"),
+          axis.text.x=element_blank(),
+          axis.ticks.x=element_blank(),
+          axis.text.y=element_blank(),
+          axis.ticks.y=element_blank(),
+          text = element_text(size=18),
+          plot.margin = margin(0, 0, 0, 0),
+          legend.position = "none",
+          plot.background = element_rect(fill = "transparent", colour = NA),
+          panel.border = element_rect(colour = "black", fill=NA, size=4))
+  
+}
+
+btgCurrentCutout<- cutout_map(btg2010_1970data_pred.df, btg2010_pred.df, 0.4780, 
+           0.4780, btgRange, "BTGR Current Prediction")
+
+btgHistoricCutout<- cutout_map(btg1970_pred.df, btg1970_2010data_pred.df, 0.3835, 
+                               0.3835, btgRange, "BTGR Historic Prediction")
+
+# combine maps
+
+combined_plot <- plot_grid(btgCurrentRange + blank_theme, gtgCurrentRange + blank_theme,
+          btgHistoricRange + blank_theme, gtgHistoricRange + blank_theme,
+          nrow = 2, rel_widths = c(3, 3, 3, 3))
+
+# add cutout maps
+
+combined_plot_cutout <- ggdraw(combined_plot) +
+  draw_plot(btgCurrentCutout, scale = 0.25, x = -0.4, y = 0.3) +
+  draw_plot(btgHistoricCutout, scale = 0.25, x = -0.4, y = -0.2)
+
+
+pdf(file = "results/aim1_2_figures_20211103/combined_map_disc_20220511.pdf",
+    width = 14,
+    height = 16)
+plot_grid(combined_plot_cutout, disc_plot, nrow = 2, rel_heights = c(5.5, 1),
+          labels = c("A.", "B."), label_size = 28, label_x = -0.01,
+          label_y = 1.005, scale = c(0.98, 1))
+dev.off()
+```
+
+### Raw Habitat Suitability
+
+The second figure plotted the raw habitat suitability values as presented in Figure S2.
+
+```{r, eval = FALSE}
+# plot maps
+
+## BTGR 2010
+BTGR2010_map <- ggplot() +
+  geom_sf(data = ne_land, fill = "gray38", col = "gray50", size = 0.2) +
+  geom_raster(data = btg2010_pred.df, aes( x = x, y = y, 
+                                          fill = pred)) +
+  geom_sf(data = ne_country_lines, col = "#ffffff") +
+  geom_sf(data = ne_state_lines, col = "#ffffff") +
+  labs(fill = "Habitat Suitability", x = "", y = "", title = "BTGR Current") +
+  scale_fill_viridis(option = "C", limits = c( 0, 1), oob = scales::squish) +
+  coord_sf(xlim = extent(btgRange)[1:2], ylim = extent(btgRange)[3:4], expand = 0) +
+  theme(panel.grid.major = element_line(color = NA), 
+        panel.background = element_rect(fill = "white"),
+        axis.text.x=element_blank(),
+        axis.ticks.x=element_blank(),
+        axis.text.y=element_blank(),
+        axis.ticks.y=element_blank(),
+        text = element_text(size=18),
+        legend.position = "none",
+        plot.margin = margin(0, 0, 0, 0))
+
+## GTGR 2010
+GTGR2010_map <- ggplot() +
+  geom_sf(data = ne_land, fill = "gray38", col = "gray50", size = 0.2) +
+  geom_raster(data = gtg2010_pred.df, aes( x = x, y = y, 
+                                           fill = pred)) +
+  geom_sf(data = ne_country_lines, col = "#ffffff") +
+  geom_sf(data = ne_state_lines, col = "#ffffff") +
+  labs(fill = "Habitat Suitability", x = "", y = "", title = "GTGR Current") +
+  scale_fill_viridis(option = "C", limits = c( 0, 1), oob = scales::squish) +
+  coord_sf(xlim = extent(gtgRange)[1:2], ylim = extent(gtgRange)[3:4], expand = 0) +
+  theme(panel.grid.major = element_line(color = NA), 
+        panel.background = element_rect(fill = "white"),
+        axis.text.x=element_blank(),
+        axis.ticks.x=element_blank(),
+        axis.text.y=element_blank(),
+        axis.ticks.y=element_blank(),
+        text = element_text(size=18),
+        legend.position = "none",
+        plot.margin = margin(0, 0, 0, 0))
+
+## BTGR 1970
+BTGR1970_map <- ggplot() +
+  geom_sf(data = ne_land, fill = "gray38", col = "gray50", size = 0.2) +
+  geom_raster(data = btg1970_pred.df, aes( x = x, y = y, 
+                                           fill = pred)) +
+  geom_sf(data = ne_country_lines, col = "#ffffff") +
+  geom_sf(data = ne_state_lines, col = "#ffffff") +
+  labs(fill = "Habitat Suitability", x = "", y = "", title = "BTGR Historic") +
+  scale_fill_viridis(option = "C", limits = c( 0, 1), oob = scales::squish)+
+  coord_sf(xlim = extent(btgRange)[1:2], ylim = extent(btgRange)[3:4], expand = 0) +
+  theme(panel.grid.major = element_line(color = NA), 
+        panel.background = element_rect(fill = "white"),
+        axis.text.x=element_blank(),
+        axis.ticks.x=element_blank(),
+        axis.text.y=element_blank(),
+        axis.ticks.y=element_blank(),
+        text = element_text(size=18),
+        legend.position = "none",
+        plot.margin = margin(0, 0, 0, 0))
+
+## GTGR 1970
+GTGR1970_map <- ggplot() +
+  geom_sf(data = ne_land, fill = "gray38", col = "gray50", size = 0.2) +
+  geom_raster(data = gtg1970_pred.df, aes( x = x, y = y, 
+                                           fill = pred)) +
+  geom_sf(data = ne_country_lines, col = "#ffffff") +
+  geom_sf(data = ne_state_lines, col = "#ffffff") +
+  labs(fill = "Habitat Suitability", x = "", y = "", title = "GTGR Historic") +
+  scale_fill_viridis(option = "C", limits = c( 0, 1), oob = scales::squish)+
+  coord_sf(xlim = extent(gtgRange)[1:2], ylim = extent(gtgRange)[3:4], expand = 0) +
+  theme(panel.grid.major = element_line(color = NA), 
+        panel.background = element_rect(fill = "white"),
+        axis.text.x=element_blank(),
+        axis.ticks.x=element_blank(),
+        axis.text.y=element_blank(),
+        axis.ticks.y=element_blank(),
+        text = element_text(size=18),
+        legend.position = "none",
+        plot.margin = margin(0, 0, 0, 0))
+
+
+# make version with legend
+GTGR1970_map_legend <- ggplot() +
+  geom_sf(data = ne_land, fill = "gray38", col = "gray50", size = 0.2) +
+  geom_raster(data = gtg1970_pred.df, aes( x = x, y = y, 
+                                           fill = pred)) +
+  geom_sf(data = ne_country_lines, col = "#ffffff") +
+  geom_sf(data = ne_state_lines, col = "#ffffff") +
+  labs(fill = "Habitat Suitability", x = "", y = "", title = "GTGR Historic") +
+  scale_fill_viridis(option = "C", limits = c( 0, 1), oob = scales::squish)+
+  coord_sf(xlim = extent(gtgRange)[1:2], ylim = extent(gtgRange)[3:4], expand = 0) +
+  theme(panel.grid.major = element_line(color = NA), 
+        panel.background = element_rect(fill = "white"),
+        axis.text.x=element_blank(),
+        axis.ticks.x=element_blank(),
+        axis.text.y=element_blank(),
+        axis.ticks.y=element_blank(),
+        text = element_text(size=18),
+        plot.margin = margin(6, 0, 6, 0))
+
+# get legend for maps
+map_legend <- get_legend(GTGR1970_map_legend)
+
+## plot combined map of all contemporary predictions
+pdf(file = "results/aim1_2_figures_20211103/pred_maps_contemporary_20220420.pdf",
+    width = 18,
+    height = 14)
+plot_grid(BTGR2010_map, GTGR2010_map,map_legend, BTGR1970_map, GTGR1970_map, 
+          nrow = 2, rel_widths = c(3, 3, 1.5, 3, 3), scale = c(0.95, 1, 1,
+                                                           0.95, 1))
+dev.off()
+```
+
+## Niche Breadth
+
+```{r, eval = FALSE}
+# load niche breadth data
+land_cover_change <- read_csv("results/niche_breadth_20220321/land_cover_change.csv")
+land_cover_change[c(10, 23), "variable"] <- "pland_14_hay_pasture"
+
+
+land_use <- land_cover_change[, c(1, 2, 4, 5, 6)] %>% 
+  melt(id.vars = c("species", "variable"))
+colnames(land_use)[3] <- "year"
+
+
+pdf(file = "results/aim1_2_figures_20211103/habitat_breadth_20220420.pdf",
+    width = 14,
+    height = 14)
+
+ggplot(land_use) + 
+  aes(x = fct_reorder(variable, value), 
+      y = value, fill = year) +
+  geom_col(position = position_dodge(), width = 0.5) +
+  scale_x_discrete(labels = envLabel)+
+  geom_hline(yintercept = 0, size = 1, colour = "#555555") +
+  scale_y_continuous(labels = scales::percent_format(1)) +
+  scale_fill_manual(values = c("#D81B60", "#1E88E5", "#FFC107"), 
+                    labels = c(map_change = "Background Change",
+                                             per1970 = "1970-1979",
+                                             per2010 = "2010-2019")) + 
+  coord_flip() +
+  labs(x = NULL, 
+       y = "Proportion Land Cover",
+       fill = "Observation Period") +
+  theme_minimal() +
+  theme(panel.grid = element_blank(),
+        panel.grid.major.x = element_line(colour = "#cccccc", size = 0.5),
+        text = element_text(size = 24))+
+  facet_grid(.~ species, 
+             labeller = labeller(species = c(btg = "BTGR", 
+                                           gtg = "GTGR")))
+dev.off()
+```
+
+## Habitat Connectivity
+
+```{r, eval = FALSE}
+# create function that loads files and generates plottable format
+
+current_data <- function(species){
+  # load native connectivity raster
+  cur2010 <- raster(paste0("results/connectivity_results_20220509/", 
+                           species, "2010_18_600km_cum_curmap.asc"))
+  
+  cur1970 <- raster(paste0("results/connectivity_results_20220509/", 
+                           species, "1970_18_600km_cum_curmap.asc"))
+  
+  # load range data
+  load(paste0("data/env/", species, "_range_buffer_600km.rdata"))
+ 
+  # stack current maps
+  curStack <- stack(cur2010, cur1970)
+  names(curStack) <- c("cur2010", "cur1970")
+  
+  # crop and mask maps to species range
+  curStack <- raster::crop(curStack, rangePoly) %>% raster::mask(rangePoly)
+  
+  projection(curStack) <- projection(ne_land)
+  
+  # convert rasters to spatial data frames
+  map.df <- rasterToPoints(curStack, spatial = TRUE) %>% data.frame()
+  map.df$cur_change <- map.df$cur2010 - map.df$cur1970
+
+  return(map.df)
+  }
+
+
+quantile_change_plot <- function(map.df, species, quant){
+  # get species range boundaries
+  load(paste0("data/env/", species, "_range_buffer_600km.rdata"))
+  
+  # get quantile values
+  q2010 <- quantile(map.df$cur2010, quant)
+  q1970 <- quantile(map.df$cur1970, quant)
+  
+  map.df$q2010 <- ifelse(map.df$cur2010 >= q2010, 5, 0)
+  map.df$q1970 <- map.df$cur1970 >= q1970
+  map.df$q_change <- map.df$q2010 + map.df$q1970
+  
+  # generate plot
+  ggplot(map.df)+
+    geom_sf(data = ne_land, fill = "gray38", col = "gray50", size = 0.2) +
+    geom_raster(aes( x = x, y = y, fill = as.factor(q_change))) +
+    labs(fill = "Connectivity", x = "", y = "") +
+    scale_fill_manual( values = c('#888888', '#9a1c65','#6767a4', '#0b450a'),
+      labels = c("Remained Low", "Became Low",
+                                 "Became High", "Remained High")) + 
+    geom_sf(data = ne_country_lines, col = "#ffffff") +
+    geom_sf(data = ne_state_lines, col = "#ffffff") +
+    coord_sf(xlim = extent(rangePoly)[1:2], ylim = extent(rangePoly)[3:4]) +
+    theme(panel.grid.major = element_line(color = NA), 
+          panel.background = element_rect(fill = "white"),
+          axis.text.x=element_blank(),
+          axis.ticks.x=element_blank(),
+          axis.text.y=element_blank(),
+          axis.ticks.y=element_blank(),
+          text = element_text(size=20),
+          plot.margin = margin(3, 0, 3, 0))
+}
+
+# generate data for each model
+
+gtg_con <- current_data("gtg")
+
+btg_con <- current_data("btg")
+
+# create plots
+
+gtg_quant_plot <- quantile_change_plot(gtg_con, "gtg", 0.75)
+
+btg_quant_plot <- quantile_change_plot(btg_con, "btg", 0.75)
+
+# get legend 
+
+quant_legend <- get_legend(gtg_quant_plot)
+
+
+# combine plots
+pdf(file = "results/aim1_2_figures_20211103/connectivity_change_20220511.pdf",
+    width = 14,
+    height = 8)
+
+plot_grid(btg_quant_plot +
+                   labs(title = "BTGR") +
+                   theme(panel.grid.major = element_line(color = NA), 
+                         panel.background = element_rect(fill = "white"),
+                         axis.text.x=element_blank(),
+                         axis.ticks.x=element_blank(),
+                         axis.text.y=element_blank(),
+                         axis.ticks.y=element_blank(),
+                         text = element_text(size=20),
+                         legend.position = "none",
+                         plot.margin = margin(3, 0, 3, 0)),
+            gtg_quant_plot +
+            labs(title = "GTGR") + 
+            theme(panel.grid.major = element_line(color = NA), 
+                  panel.background = element_rect(fill = "white"),
+                  axis.text.x=element_blank(),
+                  axis.ticks.x=element_blank(),
+                  axis.text.y=element_blank(),
+                  axis.ticks.y=element_blank(),
+                  text = element_text(size=20),
+                  legend.position = "none",
+                  plot.margin = margin(3, 0, 3, 0)), 
+          quant_legend,
+          nrow = 1, rel_widths = c(3, 3, 1.5), scale = c(0.95, 1, 1))
+
+dev.off()
+
+```
+
+## Hypothesis Maps
+
+We created Figure 5 where the results of the paper are compared to our hypotheses.
+
+```{r, eval = FALSE}
+# create color schemes for map
+plotColHist <-  c("#888888", "#B2182B", "#67001F")
+plotColCur <-  c("#888888",  "#F4A582", "#D6604D")
+
+base_map <- ggplot() +
+  geom_sf(data = ne_land, fill = "white", col = "black", size = 0.2) +
+  theme(panel.grid.major = element_line(color = NA), 
+        panel.background = element_rect(fill = "white"),
+        legend.position = "none",
+        axis.text.x=element_blank(),
+        axis.ticks.x=element_blank(),
+        axis.text.y=element_blank(),
+        axis.ticks.y=element_blank(),
+        text = element_text(size=18),
+        plot.margin = margin(0, 0, 0, 0))
+
+
+# create hypothetical range function
+
+hypothesis_plot <- function(range, year, shade){
+  ggplot() +
+    geom_sf(data = ne_land, fill = "white", col = "black", size = 0.2) +
+    #geom_sf(data = ne_country_lines, col = "gray50") +
+    geom_sf(data = range, fill = alpha(shade, 0.5), col = shade, size = 0.2) +
+    labs(title = year) +
+    coord_sf(xlim = c(-2500000, 2300000),
+             ylim = c(250000, 3200000), expand = 0) +
+    theme(panel.grid.major = element_line(color = NA), 
+          panel.background = element_rect(fill = "white"),
+          legend.position = "none",
+          axis.text.x=element_blank(),
+          axis.ticks.x=element_blank(),
+          axis.text.y=element_blank(),
+          axis.ticks.y=element_blank(),
+          text = element_text(size = 15),
+          plot.title = element_text(hjust = 0.5),
+          plot.margin = margin(0, 0, 0, 0))
+    
+}
+
+HistExpandpoly <- st_crop(ne_land, c(xmin = -2400000, xmax = 3000000, 
+                                    ymin = -1510962, ymax = 1000000))
+
+CurExpandpoly <- st_crop(ne_land, c(xmin = -2400000, xmax = 3000000, 
+                                ymin = -1510962, ymax = 2600000))
+
+CurHabpoly1 <- st_crop(ne_land, c(xmin = -2400000, xmax = 0, 
+                                    ymin = 1000000, ymax = 2600000))
+
+CurHabpoly2 <- st_crop(ne_land, c(xmin = 0, xmax = 3000000, 
+                                  ymin = 1000000, ymax = 2600000))
+
+HistConpoly <- st_crop(ne_land, c(xmin = -2400000, xmax = 3000000, 
+                              ymin = 1500000, ymax = 2600000))
+
+
+HistExpand <- hypothesis_plot(HistExpandpoly, 1979, "#67001F")
+
+CurExpand <- hypothesis_plot(CurExpandpoly, 2019, "#67001F")
+
+HistOther <- hypothesis_plot(CurExpandpoly, 1979, "#67001F")
+
+HistCon <- hypothesis_plot(HistExpandpoly, 1979, "#67001F") +
+  geom_sf(data = HistConpoly, 
+          fill = alpha("#67001F", 0.5), col = "#67001F", size = 0.2) +
+  coord_sf(xlim = c(-2500000, 2300000),
+           ylim = c(250000, 3200000), expand = 0)
+
+CurHab <- hypothesis_plot(HistExpandpoly, 2019, "#67001F") +
+  geom_sf(data = CurHabpoly1, 
+          fill = alpha("#D6604D", 0.2), col = "#D6604D", size = 0.2) +
+  geom_sf(data = CurHabpoly2, 
+          fill = alpha("#B2182B", 0.5), col = "#B2182B", size = 0.2) +
+  coord_sf(xlim = c(-2500000, 2300000),
+           ylim = c(250000, 3200000), expand = 0)
+
+EnvExpand <- plot_grid(HistExpand, CurExpand)
+
+OtherExpand <- plot_grid(HistOther, CurExpand)
+
+HabExpand <- plot_grid(HistExpand, CurHab)
+
+ConExpand <- plot_grid(HistCon, CurExpand)
+
+allExpand <- plot_grid(EnvExpand, HabExpand, ConExpand, OtherExpand, 
+                       scale = c(0.85, 0.85, 0.85, 0.85),
+                       labels = c("Increased Suitable Habitat",
+                                  "Increased Habitat Breadth",
+                                  "Increased Habitat Connectivity",
+                                  "Inherent Species Trait"),
+                       label_size = 20,
+                       align = 'vh',
+                       label_x = .3, hjust = 0)
+
+
+# create version with actual results
+
+# GTGR 
+GTGRhistResults <- ggplot() +
+  geom_sf(data = ne_land, fill = "white", col = "black", size = 0.2) +
+  geom_tile(data = filter(gtg1970_pred.df, pred >= 0.4635), 
+              aes(x = x, y = y), fill = alpha("#67001F", 0.5)) +
+  #geom_sf(data = ne_country_lines, col = "gray50") +
+  labs(title = 1979, x = "", y = "") +
+  coord_sf(xlim = c(-2500000, 2300000),
+           ylim = c(250000, 3200000), expand = 0) +
+  theme(panel.grid.major = element_line(color = NA), 
+        panel.background = element_rect(fill = "white"),
+        legend.position = "none",
+        axis.text.x=element_blank(),
+        axis.ticks.x=element_blank(),
+        axis.text.y=element_blank(),
+        axis.ticks.y=element_blank(),
+        text = element_text(size = 15),
+        plot.title = element_text(hjust = 0.5),
+        plot.margin = margin(0, 0, 0, 0))
+
+GTGRcurResults <- ggplot() +
+  geom_sf(data = ne_land, fill = "white", col = "black", size = 0.2) +
+  geom_tile(data = filter(gtg2010_pred.df, pred >= 0.444), 
+            aes(x = x, y = y, fill = as.factor((x >= -1100000 & y >= 880000 &
+                                                 x <= -200000) +
+                                                 2*(x <= -1100000)))) +
+  scale_fill_manual(values = c(alpha("#67001F", 0.5),
+                               alpha("#D6604D", 0.8),
+                               alpha("#B2182B", 0.5))) +
+  #geom_sf(data = ne_country_lines, col = "gray50") +
+  labs(title = 2019, x = "", y = "") +
+  coord_sf(xlim = c(-2500000, 2300000),
+           ylim = c(250000, 3200000), expand = 0) +
+  theme(panel.grid.major = element_line(color = NA), 
+        panel.background = element_rect(fill = "white"),
+        legend.position = "none",
+        axis.text.x=element_blank(),
+        axis.ticks.x=element_blank(),
+        axis.text.y=element_blank(),
+        axis.ticks.y=element_blank(),
+        text = element_text(size = 15),
+        plot.title = element_text(hjust = 0.5),
+        plot.margin = margin(0, 0, 0, 0))
+
+GTGRresults <- plot_grid(GTGRhistResults, GTGRcurResults)
+
+# BTGR
+BTGRhistResults <- ggplot() +
+  geom_sf(data = ne_land, fill = "white", col = "black", size = 0.2) +
+  geom_tile(data = filter(btg1970_pred.df, pred >= 0.3835), 
+            aes(x = x, y = y), fill = alpha("#2166AC", 0.8)) +
+  #geom_sf(data = ne_country_lines, col = "gray50") +
+  labs(title = 1979, x = "", y = "") +
+  geom_rect(aes(xmin = 1700000, xmax = 2000000, ymin = 1800000, ymax = 2300000),
+            size = 1, fill = NA, col = "black") +
+  coord_sf(xlim = c(-2500000, 2300000), 
+           ylim = c(250000, 3200000), 
+           expand = 0) +
+  theme(panel.grid.major = element_line(color = NA), 
+        panel.background = element_rect(fill = "white"),
+        legend.position = "none",
+        axis.text.x=element_blank(),
+        axis.ticks.x=element_blank(),
+        axis.text.y=element_blank(),
+        axis.ticks.y=element_blank(),
+        text = element_text(size = 15),
+        plot.title = element_text(hjust = 0.5),
+        plot.margin = margin(0, 0, 0, 0))
+
+BTGRcurResults <- ggplot() +
+  geom_sf(data = ne_land, fill = "white", col = "black", size = 0.2) +
+  geom_tile(data = filter(btg2010_pred.df, pred >= 0.4780), 
+            aes(x = x, y = y), fill = alpha("#2166AC", 0.8)) +
+  #geom_sf(data = ne_country_lines, col = "gray50") +
+  labs(title = 2019, x = "", y = "") +
+  coord_sf(xlim = c(-2500000, 2300000),
+           ylim = c(250000, 3200000),
+           expand = 0) + 
+  geom_rect(aes(xmin = 1700000, xmax = 2000000, ymin = 1800000, ymax = 2300000),
+            size = 1, fill = NA, col = "black") +
+  theme(panel.grid.major = element_line(color = NA), 
+        panel.background = element_rect(fill = "white"),
+        legend.position = "none",
+        axis.text.x=element_blank(),
+        axis.ticks.x=element_blank(),
+        axis.text.y=element_blank(),
+        axis.ticks.y=element_blank(),
+        text = element_text(size = 15),
+        plot.title = element_text(hjust = 0.5),
+        plot.margin = margin(0, 0, 0, 0))
+
+# create cutout maps
+BTGRhistCutout <- ggplot() +
+  geom_sf(data = ne_land, fill = NA, col = "black", size = 0.2) +
+  geom_tile(data = filter(btg1970_pred.df, pred >= 0.4780), 
+            aes(x = x, y = y), fill = alpha("#2166AC", 0.8)) +
+  #geom_sf(data = ne_country_lines, col = "gray50") +
+  labs(x = "", y = "") +
+  coord_sf(xlim = c(1700000, 2000000), 
+           ylim = c(1800000, 2300000), expand = 0) +
+  theme(panel.grid.major = element_line(color = NA), 
+        panel.background = element_rect(fill = "white"),
+        axis.text.x=element_blank(),
+        axis.ticks.x=element_blank(),
+        axis.text.y=element_blank(),
+        axis.ticks.y=element_blank(),
+        text = element_text(size=18),
+        plot.margin = margin(0, 0, 0, 0),
+        legend.position = "none",
+        plot.background = element_rect(fill = "transparent", colour = NA),
+        panel.border = element_rect(colour = "black", fill= NA , size = 2))
+
+
+BTGRcurCutout <- ggplot() +
+  geom_sf(data = ne_land, fill = NA, col = "black", size = 0.2) +
+  geom_tile(data = filter(btg2010_pred.df, pred >= 0.4780), 
+            aes(x = x, y = y), fill = alpha("#2166AC", 0.8)) +
+  #geom_sf(data = ne_country_lines, col = "gray50") +
+  labs(x = "", y = "") +
+  coord_sf(xlim = c(1700000, 2000000), 
+           ylim = c(1800000, 2300000), expand = 0) +
+  theme(panel.grid.major = element_line(color = NA), 
+        panel.background = element_rect(fill = "white"),
+        axis.text.x=element_blank(),
+        axis.ticks.x=element_blank(),
+        axis.text.y=element_blank(),
+        axis.ticks.y=element_blank(),
+        text = element_text(size=18),
+        plot.margin = margin(0, 0, 0, 0),
+        legend.position = "none",
+        plot.background = element_rect(fill = "transparent", colour = NA),
+        panel.border = element_rect(colour = "black", fill = NA, size = 2))
+
+# add cutout maps
+
+BTGRhistResultsComplete <- ggdraw(BTGRhistResults) +
+  draw_plot(BTGRhistCutout, scale = 0.4, x = -0.1, y = 0)
+
+BTGRcurResultsComplete <- ggdraw(BTGRcurResults) +
+  draw_plot(BTGRcurCutout, scale = 0.4, x = -0.1, y = 0)
+
+BTGRresults <- plot_grid(BTGRhistResultsComplete, BTGRcurResultsComplete)
+
+RangeResults <- plot_grid(BTGRresults, GTGRresults,
+                          labels = c("BTGR", "GTGR"),
+                          label_size = 20,
+                          align = 'vh',
+                          label_x = .45, hjust = 0)
+
+# combine all elements
+
+pdf(file = "results/aim1_2_figures_20211103/hypothesis_plot.pdf",
+    width = 15,
+    height = 12)
+
+plot_grid(RangeResults, allExpand, nrow = 2, rel_heights = c(1, 2),
+          labels = c("A", "B"), label_size = 28)
+
+dev.off()
+
+```
+
+## eBird Observation Locations
+
+```{r, eval = FALSE}
+# get ebird data
+gtg_ebird_zf <- read_csv("data/eBird/gtg_ebird_zf.csv") %>% data.frame()
+
+# filter for 1970-1979 observations and only for locations in the US
+gtg_70_79 <- filter(gtg_ebird_zf, year >= 1970, year <= 1979, grepl("US-", state_code),
+                    species_observed = TRUE)
+
+# repeat for 2010s data
+# filter for 2010-2019 observations and only for locations in the US
+gtg_10_19 <- filter(gtg_ebird_zf, year >= 2010, year <= 2019, grepl("US-", state_code),
+                    species_observed = TRUE)
+
+# get ebird data
+btg_ebird_zf <- read_csv("data/eBird/btg_ebird_zf.csv") %>% data.frame()
+
+# filter for 1970-1979 observations and only for locations in the US
+btg_70_79 <- filter(btg_ebird_zf, year >= 1970, year <= 1979, grepl("US-", state_code),
+                    species_observed = TRUE)
+
+# repeat for 2010s data
+# filter for 2010-2019 observations and only for locations in the US
+btg_10_19 <- filter(btg_ebird_zf, year >= 2010, year <= 2019, grepl("US-", state_code),
+                    species_observed = TRUE)
+
+# convert into spatial points
+btg2010_pts <- SpatialPointsDataFrame(coords = btg_10_19[,
+                                                    c("longitude", "latitude")],
+                                      data = btg_10_19,
+                                      proj4string = crs(ne_coast)) %>%
+  spTransform(projection(ne_land)) %>% coordinates() %>% data.frame() %>%
+  filter(!(latitude >= 1.5*10^6 & longitude <= 1*10^6))
+
+btg1970_pts <- SpatialPointsDataFrame(coords = btg_70_79[,
+                                                    c("longitude", "latitude")],
+                                      data = btg_70_79,
+                                      proj4string = crs(ne_coast)) %>%
+  spTransform(projection(ne_land)) %>% coordinates() %>% data.frame()
+
+gtg2010_pts <- SpatialPointsDataFrame(coords = gtg_10_19[,
+                                                    c("longitude", "latitude")],
+                                      data = gtg_10_19,
+                                      proj4string = crs(ne_coast)) %>%
+  spTransform(projection(ne_land)) %>% coordinates() %>% data.frame()
+
+gtg1970_pts <- SpatialPointsDataFrame(coords = gtg_70_79[,
+                                                    c("longitude", "latitude")],
+                                      data = gtg_70_79,
+                                      proj4string = crs(ne_coast)) %>%
+  spTransform(projection(ne_land)) %>% coordinates() %>% data.frame()
+
+# create plots with observation points
+
+# create generic maps
+BTGR_map <- ggplot() +
+  geom_sf(data = ne_land, fill = "white", col = "gray50", size = 0.2) +
+  geom_sf(data = ne_country_lines, col = "gray50") +
+  geom_sf(data = ne_state_lines, col = "gray50") +
+  labs(x = "", y = "")+
+  coord_sf(xlim = extent(btgRange)[1:2], 
+           ylim = extent(btgRange)[3:4], expand = 0) +
+  theme(panel.grid.major = element_line(color = NA), 
+        panel.background = element_rect(fill = "white"),
+        panel.border = element_rect(colour = "black", fill = NA, size = 2),
+        axis.text.x=element_blank(),
+        axis.ticks.x=element_blank(),
+        axis.text.y=element_blank(),
+        axis.ticks.y=element_blank(),
+        text = element_text(size=18),
+        legend.position = "none",
+        plot.margin = margin(0, 0, 0, 0))
+# gray 38, gray50
+# #ffffff
+
+GTGR_map <- ggplot() +
+  geom_sf(data = ne_land, fill = "white", col = "gray50", size = 0.2) +
+  geom_sf(data = ne_country_lines, col = "gray50") +
+  geom_sf(data = ne_state_lines, col = "gray50") +
+  labs(x = "", y = "")+
+  coord_sf(xlim = extent(gtgRange)[1:2], 
+           ylim = extent(gtgRange)[3:4], expand = 0) +
+  theme(panel.grid.major = element_line(color = NA), 
+        panel.background = element_rect(fill = "white"),
+        panel.border = element_rect(colour = "black", fill = NA, size = 2),
+        axis.text.x=element_blank(),
+        axis.ticks.x=element_blank(),
+        axis.text.y=element_blank(),
+        axis.ticks.y=element_blank(),
+        text = element_text(size=18),
+        legend.position = "none",
+        plot.margin = margin(0, 0, 0, 0))
+
+# BTGR 1970
+BTGR1970_pts_map <- BTGR_map + geom_point(data = btg1970_pts, 
+                          aes(x = longitude, y = latitude), alpha = 0.3,
+                          col = "black", size = 1.5)+
+  labs(title = "BTGR Historic")
+
+# GTGR 1970
+GTGR1970_pts_map <- GTGR_map + 
+  geom_point(data = gtg1970_pts, 
+                    aes(x = longitude, y = latitude), alpha = 0.3,
+                    col = "black", size = 1.5)+
+  labs(title = "GTGR Historic")
+
+# BTGR 2010
+BTGR2010_pts_map <- BTGR_map + 
+  geom_point(data = btg2010_pts, 
+                    aes(x = longitude, y = latitude), alpha = 0.1,
+                    col = "black", size = 1.5)+
+  labs(title = "BTGR Current")
+
+# GTGR 2010
+GTGR2010_pts_map <- GTGR_map + 
+  geom_point(data = gtg2010_pts, 
+             aes(x = longitude, y = latitude), alpha = 0.1,
+             col = "black", size = 1.5)+
+  labs(title = "GTGR Current")
+
+pdf(file = "results/aim1_2_figures_20211103/observations_plot_20220420.pdf",
+    width = 14,
+    height = 14)
+
+plot_grid(BTGR2010_pts_map, GTGR2010_pts_map, 
+          BTGR1970_pts_map, GTGR1970_pts_map, 
+          nrow = 2, rel_widths = c(3, 3, 3, 3),
+          scale = c(0.9, 0.95, 0.9, 0.95))
+
+dev.off()
+```

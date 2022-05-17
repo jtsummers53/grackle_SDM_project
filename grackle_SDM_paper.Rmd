@@ -1,0 +1,337 @@
+---
+title: The role of climate change and niche shifts in divergent range dynamics of
+  a sister-species pair
+author:
+- Jeremy Summers^1^, Dieter Lukas^2^, Corina J. Logan^2,3^, Nancy Chen^1^
+- ^1^University of Rochester, Rochester, NY, USA
+- ^2^Max Planck Institute for Evolutionary Anthropology, Leipzig, Germany
+- ^3^ University of California Santa Barbara, Santa Barbara, USA
+date: "5/16/2022"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+# Abstract
+
+Species ranges are set by limitations in climate tolerances, habitat use, and dispersal abilities. Understanding the factors governing species range dynamics remains a challenge that is ever more important in our rapidly changing world. Species ranges can shift if environmental changes affect available habitat, or if the habitat breadth or connectivity of a species changes. The ability of a species to rapidly expand their geographic range through changes in their habitat breadth, also known as niche shifts, has been linked to behavioral flexibility, the ability to change behavior when circumstances change. We tested how changes in habitat availability, habitat breadth, or habitat connectivity contributed to divergent range dynamics in a sister-species pair. The highly behaviorally flexible great-tailed grackle (*Quiscalus mexicanus*) has expanded its range northward from Texas to South Dakota in the past 40 years, while its closest relative, the boat-tailed grackle (*Quiscalus major*), has remained tied to the coasts of the Atlantic Ocean and the Gulf of Mexico. We created species distribution and connectivity models trained on citizen science data from 1970-1979 and 2010-2019 to determine how suitable habitat ranges,habitat breadth, and range-wide connectivity have changed for both species. We found that the two species occupy distinct habitats and that the habitat of the great-tailed grackle has shifted to include a larger breadth of urban, arid environments farther from natural water sources. Meanwhile, the boat-tailed grackle has remained limited to warm, wet, coastal environments. We found no evidence that changes in habitat connectivity affected the ranges of either species. Overall, our results suggest that a change in habitat breadth drove the rapid range expansion of the great-tailed grackle, while climate change shaped minor shifts in the available range of the boat-tailed grackle. The expansion in habitat breadth of the great-tailed grackle is consistent with observations that species with high behavioral flexibility can rapidly expand their geographic range by using human-altered habitat. This investigation identifies how opposite responses to anthropogenic change drive divergent range dynamics, elucidating the factors that have and will continue to shape species ranges.
+
+# Introduction
+
+Species ranges determine the patterns of biodiversity across the world, shaping the environments species encounter and the other species they can interact with (Gaston, 1996; 2003; Holt, 2003). We are still determining how abiotic and biotic factors limit species ranges (Buckley et al., 2018; Sirén \& Morelli, 2020; Paquette \& Hargreaves, 2021) and to what degree species are able to expand to new habitats (Holt, 2003; Ralston et al., 2016). Within the limits that determine species ranges, many animal species today are experiencing massive declines due loss of habitat (IUCN 2021). These declines have been linked to a broad pattern of niche conservatism, where species remain restricted to their niche, here also referred to as habitat breadth, despite movement to new geographic areas or environmental change (Holt \& Gains, 1992; Wiens et al., 2010; Liu et al., 2020).The ecological underpinnings of niche conservatism, and what factors allow some species to shift their niche, remain difficult to identify (Wiens et al., 2010). Theoretical models and empirical results point to population dynamics, gene flow, evolutionary trade-offs, and behaviors such as habitat choice as possible reasons that species do not adapt to new conditions and expand their ranges (Holt \& Gains, 1992; Holt, 2003; Wiens et al., 2010). However, there are some examples of changes in the breadth of habitat that a species uses, known as niche shifts, driving species range expansions (Broennimann et al., 2007; Hill et al., 2017; Sherpa et al., 2019).
+
+ Species expanding into new areas are assumed to have overcome some of the trade-offs or limitations that lead to niche conservatism. The causes of niche shifts can include \textcolor{blue}{behavioral flexibility, the ability to change behavior when circumstances change (see Mikhalevich et al., 2017 for theoretical background on our flexibility definition) (Chow et al., 2016; Griffin \& Guez, 2014; e.g., Lefebvre et al., 1997; Sol et al., 2002; 2005; 2007; Sol \& Lefebvre, 2000). These ideas predict that flexibility, exploration, and innovation facilitate the expansion of individuals into completely new areas and that their role diminishes after a certain number of generations (Wright et al., 2010). In support of this, experimental studies have shown that latent abilities are primarily expressed in a time of need (A. M. Auersperg et al., 2012; Bird \& Emery, 2009; Laumer et al., 2018; Manrique \& Call, 2011; e.g., Taylor et al., 2007). Therefore, we do not expect the founding individuals who initially dispersed out of their original range to have unique behavioral characteristics that are passed on to their offspring. Instead, we expect that the actual act of continuing a range expansion relies on flexibility, exploration, innovation, and persistence, and that these behaviors are therefore expressed more on the edge of the expansion range where there have not been many generations to accumulate relevant knowledge about the environment.\textcolor{blue}{ There is also evidence that some species can behaviorally shift their niche in response to anthropogenic climate change or can expand their range by using human altered environments (Wong \& Candolin, 2015; Wolff et al., 2020). \textcolor{blue}{Human-modified environments are increasing (Goldewijk, 2001; e.g., Liu et al., 2020; Wu et al., 2011), and species associated with these habitats show differences in their behavior (Chejanovski et al., 2017; e.g., Ciani, 1986; Federspiel et al., 2017).} 
+
+However, range dynamics are also influenced by factors beyond niche: environmental change leading to a \textcolor{blue}{recent increase in the amount of available habitat can facilitate a geographic range expansion (Hanski \& Gilpin, 1991; Wiens, 1997)\textcolor{blue}{, and change in habitat connectivity can alter species range limits (Holt, 2003; Platts et al., 2019). \textcolor{blue}{A species may not need to be behaviorally flexible to move into new areas if they can continue to use the same types of habitat they are accustomed to.} For example, a species may expand its range because changes in climate have caused more geographic areas to fall within its niche or if previously isolated habitat patches become connected. Thus, it is important to identify how changes in the availability of habitats, their habitat breadth, and the dispersal abilities of species contribute to range shifts to understand whether niche shifts are truly happening and to identify the underlying causes of range shifts.
+
+Here we investigated the drivers of different range dynamics in two closely related grackle species, the great-tailed grackle (*Quiscalus mexicanus*, hereafter GTGR) and boat-tailed grackle (*Quiscalus major*, hereafter BTGR). \textcolor{blue}{These species offer an opportunity for simultaneous investigation of the roles of behavior and increased habitat availability for a rapidly increasing geographic range expansion.} GTGR has rapidly expanded its range northward over the course of the 20th century (Post et al., 1996; Wehtje, 2003), moving its northern range edge from Southern Texas to South Dakota. In contrast, BTGR has experienced only minor changes to the northern edge of its range (Wehtje, 2003) despite both species having similar foraging habits and successfully using human-altered environments (Selander \& Giller, 1961; Post et al., 1996; Johnson \& Peer, 2020). \textcolor{blue}{Detailed reports on the breeding ecology of these two species indicate that range expansion in BTGR but not GTGR may be constrained by the availability of suitable nesting sites (Selander \& Giller, 1961; Wehtje, 2003).} BTGR may be limited by the need for coastal marshes or isolated groves near water for nesting sites (Post et al., 1996), while GTGR can nest in agricultural lands, marshes, and urban areas with vegetation and surface water (Johnson \& Peer, 2020). GTGR \textcolor{blue}{inhabits a wide variety of habitats (but not forests) at a variety of elevations (0-2134m), while remaining near water bodies, while BTGR exist mainly in coastal areas (Selander \& Giller, 1961).} There is also evidence that GTGR has preferred different habitats over time and across their range. Ornithologists have recorded GTGR breeding primarily in natural and human-made wetlands, while those within the recently expanded range readily breed in urban parks (Wehtje, 2003). \textcolor{blue}{However, this apparent difference in habitat breadth has yet to be rigorously quantified.}
+
+The range expansion in GTGR and range stability in BTGR could be an example of a sister-species pair where one has shifted its niche while the other follows niche conservatism. We characterized the historic (1970-1979) and current (2010-2019) niches of GTGR and BTGR using species distribution models (SDMs) to test three predictions (Fig 1B): (1) *changes in habitat availability:* \textcolor{blue}{GTGR and BTGR use different habitats, and the habitat of GTGR, but not that of BTGR, has increased in suitability and connectivity over the past few decades. This supports the hypothesis that the availability of habitat, not inherent species differences, explains why great-tailed grackles (GTGR) are able to much more rapidly expand their range than boat-tailed grackles (BTGR)} and the hypothesis that environmental change has facilitated the range expansion of GTGR. An alternative to this prediction is that there are no changes in habitat availability, but \textcolor{blue}{some inherent trait allows GTGR to expand even though both species have unused habitat available to them. This would support the hypothesis that the original behavior of GTGR was already well adapted to facilitate a range expansion.} (2) *changes in habitat breadth (i.e., niche)*: \textcolor{blue}{over the past few decades, GTGR has increased the habitat breadth that they can occupy, whereas BTGR continues to use the same limited habitat types. This would support the hypothesis that changes in behavioral traits facilitate the great-tailed grackle’s geographic range expansion.} (3) *changes in habitat connectivity:* \textcolor{blue}{species distribution models generally do not account for additional factors such as dispersal limitations when estimating suitable habitat. Therefore, we plan to conduct a separate analysis to examine} possible changes in \textcolor{blue}{connected habitat.} This would again support the hypothesis that environmental change has facilitated the range expansion of GTGR.
+
+
+![](hypothesis_plot.pdf)
+
+**Figure 1.** Comparison between the habitat suitability predicted by the SDMs and the predicted patterns depending on the forces that facilitated range expansion. (A) The suitable habitat predictions for the historic and current models based on environmental data from 1979 and 2019. We used the maximum-sensitivity-specificity thresholds for each model (GTGR Current: 0.4440, BTGR Current: 0.4780, GTGR Historic: 0.4635, BTGR Historic: 0.3935) to assign habitat as suitable. The different colors in the GTGR map indicate that different environmental conditions existed within the 2019 expanded range that were not found in the 1979 range. (B) The pairs of plots display the predictions for the historic and current models if increased suitable habitat (P1), increased habitat breadth (P2), increased habitat connectivity (P3) or other inherent species trait(s) (P4) drove range expansion.
+
+\textcolor{blue}{We used ecological niche modeling to examine temporal habitat changes over these past few decades using observation data for both grackle species from existing citizen science databases.} We determined the change in habitat availability using predictions produced by both our current and historic models for each species based on environmental data from 1979 and 2019 (Fig 2). We also tested the ability of our current and historic models to predict species presence and absence using data from the opposite time period to validate the predicted changes in suitable habitat (Torres et al., 2015; Regos et al., 2018; Yates et al., 2018). Then, we compared how the importance and effect of environmental predictors and occupied land cover types changed between our current and historic models. Finally, we used a circuit theory-based connectivity model to test for changes in habitat connectivity between 1979 and 2019. In combination, \textcolor{blue}{this allowed us to determine whether the range of great-tailed grackles, but not boat-tailed grackles, might have increased because their habitat availability, or connectivity has increased, or because great-tailed grackles, but not boat-tailed grackles now occupy a larger proportion of habitat that was previously available}, or because GTGR, but not BTGR increased their habitat breadth through a niche shift.
+
+![](methods_flowchart.png){width=75%}
+
+**Figure 2.** Overview of modeling approach and steps. The white boxes list the data used to generate the SDMs and environments used for predicting habitat suitability. The overlap between shaded boxes indicates that a habitat suitability prediction was created using the overlapping SDM and environmental predictors. The arrows indicate the habitat suitability predictions used to create the connectivity models (see Methods for a detailed description of data sources and steps).
+
+# Methods
+
+This article is the first of three articles that will be produced from a preregistration ([http://corinalogan.com/Preregistrations/gxpopbehaviorhabitat.html](http://corinalogan.com/Preregistrations/gxpopbehaviorhabitat.html)) that passed pre-study peer review at Peer Community in Ecology in 2020. The hypotheses, predictions, and methods in this manuscript come from the preregistration, and we detail all changes to the methods below.
+
+**Preregistered Analysis Plan**
+
+*Response variable:* Presence/absence of GTGR and BTGR
+
+**Explanatory Variables**
+
+1. **Land cover** (e.g., forest, urban, arable land, pastureland, wetlands, marine coastal, grassland, mangrove) - we chose these land cover types because they represent the habitat types in which both species exist, as well as habitat types (e.g., forest) they are not expected to exist in (Selander \& Giller, 1961) to confirm that this is the case. If it is the case, it is possible that large forested areas are barriers for the range expansion of one or both species. We will download global land cover type data from [MODIS](https://modis.gsfc.nasa.gov/data/dataprod/mod12.php) (16 terrestrial habitat types) and/or the [IUCN habitat classification](https://www.iucnredlist.org/resources/habitat-classification-scheme) (47 terrestrial habitat types). The IUCN has assigned habitat classifications to great-tailed ([https://www.iucnredlist.org/species/22724308/132174807#habitat-ecology](https://www.iucnredlist.org/species/22724308/132174807#habitat-ecology)) and boat-tailed ([https://www.iucnredlist.org/species/22724311/94859792#habitat-ecology](https://www.iucnredlist.org/species/22724311/94859792#habitat-ecology)) grackles, however these appear to be out of date and we will update them for the purposes of this project.
+
+2. **Elevation** - Selander \& Giller (1961) notes the elevation range for GTGR (0-2134m), but not BTGR, therefore establishing the current elevation ranges for both species will allow us to determine whether and which mountain ranges present range expansion challenges. We will obtain elevation data from [USGS](https://www.sciencebase.gov/catalog/item/4fb5495ee4b04cb937751d6d).
+
+3. **Climate** (e.g., daily/annual temperature range) - because GTGRthis species was originally tropical (Wehtje, 2003), which generally has a narrow daily and annual climate range, and now they exist in temperate regions, which have much larger climate ranges, this variable will allow us to determine potential climatic limits for both species. If there are limits, this could inform the difference between the range expansion rates of the two species. We will consider the 19 bioclimatic variables from [WorldClim](http://corinalogan.com/Preregistrations/worldclim.org). 
+
+4. **Presence/absence of water in the cell for each point** - both species are considered to be highly associated with water (e.g., Selander \& Giller, 1961), therefore we will identify how far from water each species can exist to determine whether it is a limiting factor in the range expansion of one or both species. The data will come from [USGS National Hydrography](https://www.usgs.gov/core-science-systems/ngp/national-hydrography/access-national-hydrography-products).
+
+5. **Connectivity:** Distance between points on the northern edge of the range to the nearest uninhabited suitable habitat patch to the north in 1970 compared with the same patches in ~2018. We identified the northern edge of the distribution based on reports on eBird.org from 1968-1970, which resulted in recordings of GTGR in 48 patches and recordings of BTGR in 30 patches. For these patches, we calculated the connectivity (the least cost path) to the nearest uninhabited suitable habitat patch in 1970 and again in ~2018. Given that GTGR are not found in forests and that the elevation limits for GTGR (Selander \& Giller, 1961), and observing the sightings of both species on eBird.org, large forests, tall mountain ranges and high elevation geographic features could block or slow the expansion of one or both species into these areas and their surroundings. For each point, we will calculate the least cost path between it and the nearest location with grackle presence using the leastcostpath R package (Lewis (2020)). This will allow us to determine the costs involved in a grackle deciding whether to fly around or over a mountain range/forest. We will define the forest and mountain ranges from the land cover and/or elevation maps.
+
+One model, including all explanatory variables, will be run for GTGR and a separate model will be run for BTGR. For the explanatory variables, MaxEnt produces a continuous prediction of habitat suitability for each grid cell (0 is least suitable and 1 is most suitable). We will also use jackknifing procedures to evaluate the relative contribution/importance of different environmental variables to the probability of species occurrence. We will optimize the model by trying different regularization coefficient values, which controls how much additional terms are penalized (Maxent’s way of protecting against overfitting), and choosing the value that maximizes model fit. Most MaxEnt papers use cross-validation and the area under the curve (AUC) to evaluate model performance, and we will do the same.
+
+**Analysis instructions**
+
+1. Download and preprocess eBird data. Conduct spatial filtering to account for sampling bias
+
+2. Clean the species occurrence data: remove any uncertain records or geographic outliers
+
+3. Import climactic variables from WorldClim and landscape data from MODIS and crop to region of interest
+
+4. Match environmental data to grackle occurrence records
+
+5. Fit models with maxent to get predicted distributions and estimate importance/contribution of each environmental variable
+
+We will refer to Strimas-Mackey M. et al., (2016) [best practices for using eBird data](https://cornelllabofornithology.github.io/ebird-best-practices/) when extracting data on grackle presence in a region from eBird.org. We will gather environmental data from databases, including a database that maps global urban change from 1985-2015 to a high (30 m) resolution (Liu et al., (2020)). We will use a variety of R packages, including auk (M. Strimas-Mackey et al., (2018)), dismo (Hijmans et al., (2017)), raster (Hijmans (2020)), maptools (Bivand \& Lewin-Koh (2019)), tidyverse (Wickham et al., (2019)), rgdal (Bivand et al., (2019)), rJava (Urbanek (2020)), and elevatr (Hollister \& Tarak Shah (2017)).
+
+**Analysis 1 (P1: different habitats):** does the range of variables that characterize suitable habitat for GTGR differ from that of BTGR? We will fit species distribution models for both species in 2018 to identify the variables that characterize suitable habitat. We will examine the raw distributions of these variables from known grackle occurrence points or extract information on how the predicted probability of grackle presence changes across the ranges for each habitat variable. The habitat variables for each species will be visualized in a figure that shows the ranges of each variable and how much the ranges of the variables overlap between the two species or not.
+
+**Analysis 2 (P1: habitat suitability):** has the available habitat for both species increased over time? We will fit species distribution models for both species in 1970 and in 2018 and determine for each variable, the range in which grackles are present (we define this as the habitat suitability for each species). Then we will take these variables and identify which locations in the Americas fall within the grackle-suitable ranges in 1970 and in 2018. We will then be able to compare the maps (1970 and 2018) to determine whether the amount of suitable habitat has increased or decreased.
+
+If we are able to find data for these variables before 1970 across the Americas, we will additionally run models using the oldest available data to estimate the range of suitable habitat earlier in their range expansion.
+
+**Analysis 3 (P1: habitat connectivity):** has the habitat connectivity for both species increased over time? If the connectivity distances are smaller in 2018, this will indicate that habitat connectivity has increased over time. We will calculate the least cost path from the northern edge to the nearest suitable habitat patch. To compare the distances between 1970 and 2018, and between the two species, we will run two models where both have the distance as the response variable and a random effect of location to match the location points over time. The explanatory variable for model 1 will be the year (1970, 2018), and for model 2 it will be the species (GTGR, BTGR).
+
+If we are able to find data for these variables before 1970 across the Americas, we will additionally run models using the oldest available data to estimate the range of connected habitat earlier in their range expansion.
+
+**Analysis 4 (P2: habitat breadth):** has the habitat breadth of both species changed over time? We will count the number of different land cover categories each species is or was present in for 1970 and 2018. To determine whether this influences their distributions, we will calculate how much area in the Americas is in each land cover category, which would then indicate how much habitat is suitable (based solely on land cover) for each species.
+
+# Results
+
+## Habitat Availability
+
+We first compared how habitat availability has changed for BTGR and GTGR by predicting habitat suitability across each species range using environmental data from 1979 and 2019. We validated these predictions using presence-absence data set aside from the current and historic datasets. If habitat availability was the most important factor in determining the range dynamics of either species, then the current models should be sufficient to predict the expected range dynamics, the current and historic models should agree on the locations of suitable habitat, and the current models should be transferable to the historic dataset. Alternatively, if changes in habitat preference or connectivity were important for the species range dynamics, the current and historic models should disagree and be mutually non-transferrable.
+
+Habitat availability for BTGR has remained the same across most of its range according to both the current and historic models, and the current model is highly transferable. BTGR remained restricted to the coasts of the Gulf of Mexico and Atlantic Ocean, but habitat suitability increased within the interior of Florida and on the northern edge of the species range, increasing the total suitable area from 180,406 km2 to 199,912 km2 in the historic model, and from 111,218 km2 to 163,243 km2 in the current model (Fig 3A; see Fig S2 for suitability values). The models disagreed on the northern extent of suitable habitat, with the historic model reaching the southern tip of Delaware, while the current model predicted that suitable habitat reached farther north to Long Island. The current model recreated existing species range definitions, including a known break in the species range on the western edge of the Florida panhandle (Post et al., 1996). The current model was also highly transferable, with little difference between the prediction accuracy using the current or historic datasets ($\Delta$Kappa = 0, $\Delta$AUC = -0.026, Fig 3B), while the historic model had lower transferability ($\Delta$Kappa = -0.226, $\Delta$AUC = -0.049). The accuracy of the current model indicates that environmental change is sufficient to predict changes in habitat suitability, and the low transferability of the historic model could be due to greater geographic bias caused by the smaller sample size (Fig S1). Our models show that the BTGR range has remained largely stable except for an expansion along the northeastern coast of the US and that habitat availability was likely the major driver of range dynamics in BTGR.
+
+![](combined_map_disc_20220511.pdf)
+
+**Figure 3.** Predicted suitability maps and discrimination ability of SDMs. (A) Maps display areas where predicted suitability is greater than the maximum-sensitivity-specificity thresholds for each model (GTGR Current: 0.4440, BTGR Current: 0.4780, GTGR Historic: 0.4635, BTGR Historic: 0.3935). Darker shaded regions are predictions made using the historic environment (Historic and Current Backcast) and lighter regions are predictions made using the current environment (Historic Forecast and Current). The northern edge of BTGR range is expanded in a map insert for clarity. Overall, the areas of lighter color indicate changes in habitat availability from 1979-2019, as predicted by each model. (B) The ability of each model to predict the presence or absence of BTGR (blues) or GTGR (reds) using Cohen’s kappa (agreement between presence or absence classification for model and true presence or absence) and AUC (area under the sensitivity-specificity curve). The models were tested using either test data excluded from the training data set (historic and current predictions) or test data from the opposing temporal period (backcast and forecast predictions). Error bars signify one standard deviation in the values across 10 replicates. The high values of BTGR Historic, Current Backcast, and Current, and GTGR Historic and Current indicate that these models are accurate, while the lower values of BTGR Historic Forecast and GTGR Historic Forecast and Current Backcast indicate BTGR Historic and GTGR Historic and Current models have poor transferability.
+
+Habitat availability for GTGR has expanded, but the current and historical models disagree on the extent and location of this expansion and are mutually non-transferrable. The historic model restricted the GTGR range to 198,175 km2 in southern Texas, matching previous reports of the species range in the 1970s (Wehtje, 2003), and predicted minor reductions in range to 181,281 km2 (Fig 3A, Fig S2). The current model instead predicted suitable habitat existed in both time periods across the known range expansion of GTGR (Wehtje, 2003) in the central and southwestern US, with further expansions within central California, Colorado, Kansas, and southeastern Texas. Suitable habitat expanded from 322,750 km2 in 1979 to 547,694 km2 in 2019, however this expansion included areas that were suitable within the historic model. Neither model had high transferability (current: $\Delta$Kappa = -0.184, $\Delta$AUC = -0.061; (historic: $\Delta$Kappa = -0.203, $\Delta$AUC = -0.177, Fig 3B). The disagreement between our models indicates that environmental change alone cannot explain the range expansion of GTGR. Each model accurately predicted the species range within its own time period, but failed to predict the known changes in that range. Together, our models predict that the GTGR range has more than doubled in the past 40 years, but indicate that changes to habitat preferences or connectivity likely played a larger role than habitat availability in shaping range dynamics. 
+
+## Habitat Preferences
+
+We next compared the changes in habitat preferences of BTGR and GTGR by measuring the importance of each environmental predictor to the current and historic models for each species and quantifying the marginal effect that changing the value of these predictors had on habitat suitability. Differences in which predictors are most important or how predictors influence habitat suitability describe differences in the niches predicted by our models. We also quantified how frequently each species was observed on different land cover classes between the current and historic datasets to test for changes in the breadth of land cover classes used by either species.
+
+The most important predictors for the current BTGR model were mean temperature of the wettest quarter (accounting for 14.2% of the total average GINI index), elevation (11.8%), precipitation of the wettest month (9.1%), and deciduous forest land cover (8.4%; Fig 4). Habitat suitability increased as the mean temperature of the wettest quarter and precipitation of the wettest month increased and was highest when both elevation and deciduous forest land cover were close to zero (Fig 5; see Fig S3 for the full set of partial dependence plots). Our model indicates that the ideal habitats for BTGR are warm, low elevation habitats with high precipitation and low forest cover.
+
+![](piAll_plot_20220314.pdf)
+
+**Figure 4.** Importance of environmental predictors for BTGR and GTGR historic and current SDMs. Relative predictor importance measures how informative the predictors were for classifying presence or absence points within each model (% total GINI index). The predictor colors indicate whether a predictor was a measure of climate (yellow), observer effort (red), distance to water (blue), land cover classification (green), or elevation (gray).
+
+![](pdAll_top8_20220330.pdf)
+
+**Figure 5.** Partial dependence curves for the 12 most important environmental predictors across all models. The curves represent how changing each environmental predictor changes the encounter rate for the modeled species. The historic models are represented by the darker dashed lines and the current models are represented by the lighter solid lines. Shaded regions indicate one standard deviation. The differences between the historic and current models for each species present how the species niche has changed based on our models.
+
+The historic model for BTGR disagreed on the importance and effect of few predictors, supporting niche conservatism in the species. Both the historic and current models placed high importance on the mean temperature in the wettest quarter (12.4%; Fig 4), precipitation of the wettest month (12.4%), and deciduous forest cover (7.9%). However, the historic model prioritized the mean temperature of the driest quarter (9.7%, 5.8% in the current model) and not elevation (4.8%). Among these predictors, only the mean temperature of the driest quarter had a different effect in the historic model than in the current model (Fig 5). Habitat suitability increased as the mean temperature of the driest quarter increased in both models, but the current model predicted that suitability would decrease beyond the observed temperature range of the historic model. Differences between the historic and current models do not indicate that the habitat preferences of BTGR have changed over time.
+
+BTGR was found in every land cover class except deciduous forests and ice/snow in both the historic and current time periods. BTGR was found more often in urban areas in the current time period, and less often in the land cover class that was the second most common in the historic time period: woody wetlands (Fig S4). BTGR was also found less often in croplands, which corresponds with a decrease in croplands across the checklist range. We found no evidence of any change in habitat breadth based on land cover classes for BTGR, agreeing with the results of our SDMs.
+
+The most important predictors for the current GTGR model were maximum temperature of the warmest month (15.5%; Fig 4), mean temperature of the wettest quarter (15.3%), mean temperature in the driest quarter (7.2%), and distance to coasts (6.8%). Habitat suitability increased as the maximum temperature of the warmest month, mean temperature of the wettest quarter, and mean temperature of the driest quarter increased, while suitability was negatively related to the distance to coasts (Fig 5, Fig S3). Our model indicates that the ideal habitats for GTGR are warm areas not too far from coasts.
+
+The historic model for GTGR disagreed on the importance and effect of several predictors, supporting a niche shift for the species. The historic model agreed with the current model on the high importance of the maximum temperature of the warmest month (9.8%, Fig 4) and mean temperature of the wettest quarter (17.0%). However, the historic model prioritized the precipitation in the driest month (9.9% vs. 5.9% in the current model) and the distance to fresh water (7.9% vs. 2.7% in the current model), and not the distance to coasts (4.5%) nor the mean temperature in the driest quarter (4.3%). Habitat suitability increased as precipitation in the driest month increased, while the current model predicted the opposite trend (Fig 5). Habitat suitability was also greatest near fresh water, while the current model predicted little effect of the distance to fresh water. The two models also disagree on which land cover class was most important for GTGR. Urban cover was most important for the current model (4.8% vs. 3.6% in the historic model), while grassland cover (4.7% vs. 1.5% in the current model) was most important for the historic model. While habitat suitability increased as urban cover increased for both models, the current model reached its maximum suitability by 25% urban cover, while the historic model did not reach similar suitability until almost 100% urban cover. The faster rate of suitability increase in the current model indicates that GTGR can use a wide variety of urban habitats, from moderate to highly urbanized areas, while the historic model indicates that GTGR only prefer highly urbanized habitat. Our models indicate that GTGR has shifted toward more arid habitat with greater variability in urban cover.
+
+GTGR was found in every land cover class except deciduous forests, mixed forests, and ice/snow in the historic sample, and every land cover class except deciduous forests and ice/snow in the current sample. There were more GTGR observations in the current sample on urban areas, croplands, and grasslands and less observations in water, shrublands, pastures, and evergreen forests (Fig S4). While the most common land cover classes GTGR was found to have shifted, there was no evidence that GTGR has expanded the breadth of land cover classes it could occupy. These results are consistent with our SDMs, which found the greatest change in preferences for climate factors.
+
+## Connectivity
+
+To determine whether changes in connectivity between habitat patches could explain the rapid expansion of GTGR but not BTGR, we estimated the change in accumulated current across the range of each species between 1979 and 2019. Accumulated current summarizes the amount of movement through a cell, thus cells with higher current values are more suitable for movement and increase connectivity. We binned current values into high or low connectivity using the 75th percentile (Bonnin et al., 2020). Most cells within the 75th percentile of current values based on the 1979 resistance surface remained within the 75th percentile for both species. 
+
+Connectivity decreased for BTGR along the interior portion of its range (farther from the coasts) in the southern Atlantic states and the southern coast of Texas (Fig S5). However, connectivity increased along the Florida panhandle, the northern coast of North Carolina, and the areas surrounding New York City (New York State, New Jersey, and Connecticut). There were no isolated patches of high connectivity for BTGR, and changes in connectivity did not connect or isolate any habitat patches. Our model does not support connectivity changes contributing to the range dynamics of BTGR.
+
+Connectivity decreased for GTGR within the state of Arizona and along the northern extreme of the cells within the 75th percentile (Oregon, Nevada, Colorado, and Kansas). However, connectivity increased along the eastern extreme (Texas and Oklahoma) and the northern edges in Arizona and New Mexico (Fig S5). Only one region of high connectivity in Montana was isolated from the core of connected cells, and no areas became isolated or connected between 1979 and 2019. Similar to BTGR, our model does not support connectivity changes contributing to the range dynamics of GTGR.
+
+# Discussion
+
+We investigated how changes in habitat availability, habitat breadth, and connectivity contributed to differential range dynamics in a sister-species pair. We found that the rapidly-expanding GTGR has increased their habitat breadth in the past 40 years, whereas BTGR goes where there is available habitat, which is consistent with the hypothesis that changes in behavioral traits may facilitate GTGR’s geographic range expansion (Fig 1). We found that the range dynamics of BTGR could be explained by changes in habitat availability due to climate change. The current GTGR niche contains more arid climate conditions and is less dependent on bodies of fresh water than in the past. Meanwhile, climate change in the northern extreme of BTGR range increased the area of suitable habitat, matching observed expansions of the species in that area. We found no evidence that changes in connectivity could have connected isolated patches of suitable habitat for either species. 
+
+Our current BTGR model is consistent with past work showing that BTGR is highly restricted to coastal areas, and that an expansion into northern coastal areas could be due to climate changes. BTGR rarely occurs far from saltwater in the northern portion of their range, but can nest inland across Florida (Selander \& Giller, 1961; Post et al., 1996). Our current model recreated this distribution and predicted the elevation and distance to coastline as highly important environmental limitations. The historical model did not recreate the same high suitability within the interior of Florida and had both elevation and distance to coastlines as less important. However, our historic model also had lower transferability and could have reduced accuracy due to a low sample size, which can inflate the impact of geographic bias in samples (Elith et al., 2010; Anderson \& Gonzalez, 2011; Guillera-Arroita et al., 2016; Yates et al., 2018). Both models predict increased suitability in the northern portion of the species range, which matches past observations (Selander \& Giller, 1961) and general trends observed in several bird species that track their optimal conditions as anthropogenic climate change has altered environments (Vitousek et al., 1997; Thomas, 2010; Tomiolo \& Ward, 2018).
+
+The changes in species range we found in GTGR matched those predicted by previous researchers, but we found that the range expansion was primarily due to changes in the climate niche expanded into rather than land cover preferences. Selander \& Giller (1961) note that, along the northern range edge, GTGR has expanded into new arid prairie habitat but was highly restricted to human settlements and farms in these areas. GTGR requires access to open habitat and standing water across their range (Selander \& Giller, 1961), and human land use change and irrigation could meet these needs. Our models did find that GTGR preferred habitat close to bodies of freshwater in the historic but not the current time period, suggesting that GTGR can now survive farther from open water. The current GTGR model also predicted higher suitability in areas with more cropland and pasture, but neither land cover class had high predictor importance. Instead, precipitation in the wettest and driest months marked the greatest difference between the current and historic models. Wehtje (2003) proposed that lower nest predation and abundant food in human modified environments could allow GTGR to support populations within otherwise suboptimal climate conditions. GTGR could use the same land cover classes in both time periods, but current populations have novel ways to use human altered environments to expand their climate niche.
+
+It remains unclear why GTGR has expanded its niche while BTGR has not. Both BTGR and GTGR are highly adaptable species with similar foraging habits. Human-associated species like BTGR and GTGR that use urban habitats are typically more behaviorally flexible and better suited to use new environments than other species (Sol et al., 2002; 2005; 2013; Wong \& Candolin, 2015). There could be meaningful differences in the degree of flexibility between these species or other factors that limit the ability of BTGR to expand to new habitats. The greater nest-site specificity of BTGR could be a limiting factor, though nest site plasticity does exist in the species (Post et al., 1996). Further studies are needed to compare ecologically relevant differences in flexibility, exploration, dispersal, and reproductive behaviors between these two species.
+
+Our results demonstrate vastly different niche dynamics within closely related species and illustrate the divergent responses species can have to anthropogenic change. Phylogenetic signal of niche conservatism is strongest within short evolutionary timescales (Pearman et al., 2008), yet we found distinct niches for sister-species ~2 million years diverged (Powell et al., 2008) and evidence for a further niche shift within one species. The distinct niche dynamic of each species also represents opposing responses to anthropogenic change: BTGR has shifted its range in response to climate change, while the rapidly expanding GTGR has acclimated to new climates possibly due to human land-use change. Species with similar responses to BTGR could be more vulnerable to future climate change (Thomas, 2010), while GTGR parallels rapidly expanding introduced species, despite being native to North America (Peer, 2011). The habitat breadth expansion of GTGR also confounds our ability to project how the species range will change in the future, and could have implications for a projected expansion in the common grackle (*Quiscalus quiscalus*, Capainolo et al., 2021). Identifying the mechanism of range dynamics in both species expands the knowledge of the complex and changing factors that shape species ranges globally.
+
+The high accuracy of our SDMs when cross validated on their own datasets and the transferability of the current BTGR model support the use of SDMs as tools to study how species ranges change over time. While improving model transferability remains a challenge for SDMs (Vaughan \& Ormerod, 2005; Yates et al., 2018), using a combination of climate and land use data can improve model accuracy and transferability in some situations (Elith \& Graham, 2009; Regos et al., 2019). Our results also stress the importance of testing model transferability before assuming niche conservatism for all species. While niche conservatism is a common pattern across species, assuming species will retain their niche through time can limit the usefulness of SDMs. When model transferability is tested, SDMs become a more effective tool for studying species ranges to both understand fundamental questions in ecology and evolution and set conservation priorities in the face of ongoing anthropogenic changes (Elith et al., 2010; Grenoullet \& Comte, 2014; Sofaer et al., 2018; Chen et al., 2018).
+
+SDMs are accompanied by several limitations that are important to consider. SDMs are correlative in nature and are susceptible to biases in sample and parameter selection (Regos et al., 2019; Sofaer et al., 2018). Here, we used geographic undersampling and a balanced random forest design to reduce the impact of sampling bias and selected both climate and land cover parameters to include biologically relevant variables, but other potentially causative variables could remain. Recent work promotes the inclusion of biotic factors in SDMs such as pathogen, predator, or competitor species because interspecific dynamics can play a major role in determining species ranges (Gaston, 2003; Paquette \& Hargreaves, 2021; Stephan et al., 2021). Future work could investigate how the presence of nest predators such as the fish crow (*Corvus ossifragus*), which overlaps in range with BTGR but not GTGR (Post et al., 1996), could also prevent BTGR from expanding its range.
+
+In conclusion, this investigation found support for the hypothesis that the range expansion of GTGR and range stability of BTGR is an example of niche shifting and niche conservatism in a sister-species pair. Despite the many similarities between these two species, they occupy distinct niches and had divergent responses to anthropogenic change. While BTGR range conformed to climate change, GTGR expanded across new human-altered environments. Our results are consistent with the hypothesis that behavioral flexibility may have allowed GTGR to expand their range by using new habitats. Further studies on how ecology, gene flow, and behavior created such different niche dynamics will shed light on the mechanisms that limited the BTGR but not the GTGR. This work will elucidate the role of behavior in shaping species ranges in our rapidly changing world.
+
+# References
+
+Anatharaman R, Hall K, Shah VB, Edelman A. 2020. Circuitscape in Julia: High performance connectivity modelling to support conservation decisions. *Proceedings of Juliacon*. 1(1)
+
+Auersperg AM, Szabo B, Von Bayern AM, Kacelnik A. 2012. Spontaneous innovation in tool manufacture and use in a goffin’s cockatoo. *Current Biology*. 22(21):R903-R904
+
+Beier P, Pencer W, Baldwin RF, McRae BH. 2011. Toward best practices for developing regional connectivity maps. *Conservation Biology*. 25(5):879-892.
+
+Bird CD, Emery NJ. 2009. Insightful problem solving and creative tool modification by captive nontool-using rooks. *Proceedings of the National Academy of Sciences*. 106(25):10370-10375
+
+Bivand R, Keitt T, Rowlingson B. 2019. Rgdal: Bindings for ‘geospatial’ data abstraction library.  [https://CRAN.R-project.org/package=rgdal](https://cran.r-project.org/package=rgdal)
+
+Bivand R, Lewin-Koh N. 2019. Maptools: Tools for handling spatial objects. [https://CRAN.R-project.org/package=maptools](https://cran.r-project.org/package=maptools) 
+
+Broennimann O, Treier UA, Müller-Shärer H, Thuiller W, Peterson AT, Guisan A. 2007. Evidence of climatic niche shift during biological invasion. *Ecology Letters*. 10(8):701-709
+
+Capainolo P, Perktaş Y, Fellowes MDE. Rapid range expansion predicted for the common grackle (*Quiscalus quiscalus*) in the near future under climate change scenarios. *Avian Research*. 12(1):1-7
+
+Chejanovski ZA, Avilés-Rodríguez KJ, Lapiedra O, Preisser EL, Kolbe JJ. 2017. An experimental evaluation of foraging decisions in urban and natural forest populations of anolis lizards. *Urban Ecosystems*. 20(5):1011-1018
+
+Chow PKY, Lea SE, Leaver LA. 2016. How practice makes perfect: The role of persistence, flexibility and learning in problem-solving efficiency. *Animal Behaviour*. 112:273-283. [https://doi.org/10.1016/j.anbehav.2015.11.014](https://doi.org/10.1016/j.anbehav.2015.11.014)
+
+Ciani AC. 1986. Intertroop agonistic behavior of a feral rhesus macaque troop ranging in town and forest areas in india. *Aggressive Behavior*. 12(6):433-439
+
+Danielson JJ, Gesch DB. 2011 Global multi-resolution terrain elevation data 2010 (GMTED2010). US Geological Survey Open-File Report 2011-1073: 26 p
+
+de Sousa Miranda L, Awade M, Jaffé R, Costa WF, Trevelin LC, Borges RC, de Brito RM, Tambosi LR, Giannini TC. 2021. Combining connectivity and species distribution modeling to define conservation and restoration priorities for multiple species: A case study in the easter Amazon. *Biological Conservation*. 257: 109148.
+
+eBird Basic Dataset. Version: EBD_relJan-2021. Cornell Lab of Ornithology, Ithaca, New York. Jan 2021.
+
+Elith J, Graham CH. 2009. Do they? How do they? Why do they differ? On finding reasons for differing performances of species distribution models. *Ecography*. 32(1):66-77
+
+Federspiel IG, Garland A, Guez D, Bugnyar T, Healy SD, Güntnürkü O, Griffin AS. 2017. Adjusting foraging strategies: A comparison of rural and urban common mynas (acridotheres tristis). *Animal Cognition*. 20(1):65-74
+
+Fick SE, Hijmans RJ. 2017. WorldClim 2: New 1-km spatial resolution climate surfaces for global land areas.* International Journal of Climatology*. 37(12):4302-4315.
+
+Gaston KJ. 1996. Species-range-size distributions: patterns, mechanisms and implications. *Trends in Ecology and Evolution*. 11(5):197-201
+
+Gaston KJ. 2003. The structure and dynamics of geographic ranges. Oxford University Press, Oxford
+
+Goldewijk KK. 2001. Estimating global land use change over the past 300 years: The HYDE database. *Global Biogeochemical Cycles*. 15(2):417-433
+
+Griffin AS, Guez D. 2014. Innovation and problem solving: A review of common mechanisms. *Behavioural Processes*. 109:121-134
+
+Guillera-Arroita G, Lahoz-Monfort JJ, Elith J. Maxent is not a presence-absence method: a comment on Thibaud et al., *Methods in Ecology and Evolution*. 5(11):1192-1197
+
+Guillera-Arroita G, Lahoz-Monfort JJ, Elith J, Gordon A, Kujala H, Lentini PE, McCarthy MA, Tingley R, Wintle BA. 2015. Is my species distribution model fit for purpose? Matching data and models to applications. *Global Ecology and Biogeography*. 24(3):276-292
+
+Hanski I, Gilpin M. 1991. Metapopulation dynamics: Brief history and conceptual domain. *Biological Journal of the Linnean Society*. 42(1-2):3-16
+
+Hardy EE, Anderson JR. 1973. A land-use classification system for use with remote-sensor data. U.S. Geological Survey 671
+
+Hesselbarth MHK, Sciaini M, With KA, Wiegand K, Nowosad J. 2019. landscapemetrics: an open-source R tool to calculate landscape metrics. *Ecography*. 42:1648-1657 (ver. 0).
+
+Hijmans RJ. 2020. Raster: Geographic data analysis and modeling.  [https://CRAN.R-project.org/package=raster](https://cran.r-project.org/package=raster)
+
+Hijmans RJ, Phillips S, Leathwick J, Elith J. 2017 Dismo: Species distribution modeling. [https://CRAN.R-project.org/package=dismo](https://CRAN.R-project.org/package=dismo). 
+
+Hill MP, Ballardo B, Treblanche JS. 2017. A global assessment of climatic niche shifts and human influence in insect invasions. *Global Ecology and Biogeography*. 26(6):679-689
+
+Hollister J, Tarak Shah. 2017. Elevatr: Access elevation data from various APIs. [http://github.com/usepa/elevatr](http://github.com/usepa/elevatr)
+
+Holt RD. 2003. On the evolutionary ecology of species’ ranges. *Evolutionary Ecology Research*. 5(2):159-178
+
+Holt RD, Gaines MS. 1992. Analysis of adaptation in heterogeneous landscapes: implications for the evolution of fundamental niches. *Evolutionary Ecology*. 6(5):433-447
+
+Homer C, Dewitz J, Yang L, Jin S, Danielson P, Xian G, Couston J, Herold N, Wickham J, Megown K. 2015. Completion of the 2011 National Land Cover Database for the conterminous United States-representing a decade of land cover change information. *Photogrammetric Engineering \& Remote Sensing*. 81(5):345-354
+
+IUCN. 2021. The IUCN Red List of Threatened Species. Version 2021-3. https://www.iucnredlist.org. Accessed on 16 May 2022.
+
+Johnston A, Hochachka WM, Strimas-Mackey ME, Ruiz-Gutierrez V, Robinson OJ, Miller ET, Auer T, Kelling ST, Fink D. 2021. Analytical guidelines to increase the value of community science data: An example using eBird data to estimate species distributions. *Diversity and Distributions*. 27:1265-1277
+
+Johnson K, Peer BD. 2020 Great-tailed Grackle (*Quiscalus mexicanus*), version 1.0. In Birds of the World (Poole AF, Gill FB, Editors). Cornell Lab of Ornithology, Ithaca, NY, USA. [https://doi.org/10.2173/bow.grtgra.01](https://doi.org/10.2173/bow.grtgra.01)
+
+Justen H, Lee-Yaw JA, Delmore KE. 2021. Reduced habitat suitability and landscape connectivity in a songbird migratory divide. *Global Ecology and Biogeography*. 30(10):2043-2056.
+
+Laumer I, Call J, Bugnyar T, Auersperg A. 2018. Spontaneous innovation of hook-bending and unbending in orangutans (pongo abelii). *Scientific Reports*. 8(1):1-13
+
+Lefebvre L, Whittle P, Lascaris E, Finkelstein A. 1997. Feeding innovations and forebrain size in birds. *Animal Behaviour*. 53(3):549-560. [https://doi.org/10.1006/anbe.1996.0330](https://doi.org/10.1006/anbe.1996.0330)
+
+Lewis, J. (2022) leastcostpath: Modelling Pathways and Movement Potential Within a Landscape (version 1.8.6). 
+
+Available at: https://cran.r-project.org/web/packages/leastcostpath/index.html
+
+Liu C, Berry PM, Dawson TP, Pearson RG. 2005. Selecting thresholds of occurrence in the prediction of species distributions. *Ecography*. 28(3):385-393.
+
+Liu C, Wolter C, Xian W, Jeschke JM. 2020. Most invasive species largely conserve their climatic niche. *PNAS*. 117(38):23643-23651
+
+Liu X, Huang Y, Xu X, Li X, Li X, Ciais P, Lin P, Gong K, Ziegler AD, Chen A, … Montgomery SH. 2018. Beyond brain size: Uncovering the neural correlates of behavioral and cognitive specialization. *Comparative Cognition \& Behavior Reviews*.
+
+Manrique HM, Call J. 2011. Spontaneous use of tools as straws in great apes. *Animal Cognition*. 13(2):213-226
+
+McHugh ML. 2012. Interater reliability: the kappa statistic. *Biochemica Medica*. 22(3):276-282
+
+Mi C, Huettmann F, Guo Y, Han X, Wen L. 2017. Why choose random forest to predict rare species distribution with few samples in large undersampled areas? Three Asian crane species models provide supporting evidence. *PeerJ*. DOI 10.7717/peerj.2849.
+
+Mikhalevich I, Powell R, Logan C. 2017. Is behavioral flexibility evidence of cognitive complexity? How evolution can inform comparative cognition. *Interface Focus*. 7(3):20160121. [https://doi.org/10.1098/rsfs.2016.0121](https://doi.org/10.1098/rsfs.2016.0121) 
+
+Naimi B, Hamm NA, Groen TA, Skidmore AK, Toxopeus AG. 2014. Where is positional uncertainty a problem for species distribution modelling? *Ecography*. 37:191-203.  
+
+Norberg A, Abrego N, Blanchet FG, Adler FR, Anderson BJ, Antilla J, Araújo MG, Dallas T, Dunson D, Elith J, Foster SD, Fox R, Franklin J, Godsoe W, Guisan A, O’Hara B, Hill NA, Holt RD, Hui FKC, Husby M, Kålås JA, Lehikoinen A, Luoto M, Mod HK, Newell G, Renner I, Roslin T, Soininen J, Thuiller W, Vanhatalo J, Warton D, White M, Zimmermann NE, Gravel D, Ovaskainen O. 2019. A comprehensive evaluation of predictive performance of 33 species distribution models at species and community levels. *Ecological Monographs*. 89(3):1-24
+
+Paquette A, Hargreaves AL. 2021. Biotic interactions are more often important at species’ warm versus cool range edges. *Ecology Letters*. 24(11):2427-2438
+
+Pearman P, Guisan A, Broennimann O, Randin CF. 2008. Niche dynamics in space and time. *Trends in Ecology and Evolution*. 23(3):149-158
+
+Peer BD. 2011. Invasion of the emperor’s grackle. *Ardeola*. 58(2):405-409
+
+Platts P, Mason SC, Palmer G, Hill JK, Oliver TH, Powney GD, Fox R, Thomas CD. 2019. Habitat availability explains variation in climate-driven range shifts across multiple taxonomic groups. *Scientific Reports*. 9(1):1-10. [http://dx.doi.org/10.1038/s41598-019-51582-2](http://dx.doi.org/10.1038/s41598-019-51582-2) 
+
+Post W, Poston JP, Bancroft GT. 1996. Boat-tailed grackle: *Quiscalus major*. American Ornithologists’ Union.
+
+Powell AFLA, Barker FK, Lanyon SM. 2008. A complete species level phylogeny of the grackles (*Quiscalus* spp.), including the extinct slender-billed grackle, inferred from mitochondrial DNA. *The Condor*. 110(4):718-728
+
+Ralston J, DeLuca WV, Feldman RE, King DI. 2016. Realized climate niche breadth varies with population trend and distribution in North American birds. *Global Ecology and Biogeography*. 25(10):1173-1180
+
+Regos A, Gagne L, Alcaraz-Segura D, Honrado JP, Domínguez J. 2019. Effects of species traits and environmental predictors on performance and transferability of ecological niche models. *Scientific Reports*. 9:4221
+
+Regos A, Imbeau L, Desrochers M, Leduc A, Robert M, Sur C, Brotons L, Drapeau P. 2018. Hindcasting the impacts of land-use change on bird communities with species distribution models of Bird Atlas data. *Ecological Applications.* 28(7):1867-1883
+
+Robinson OJ, Ruiz-Gutierrez V, Reynolds MD, Golet GH, Strimas-Mackey M, Fink D. 2020. Integrating citizen science data with expert surveys increases accuracy and spatial extent of species distribution models. *Diversity and Distributions*. 26(8):976-986 
+
+Sirén APK, Morelli TL. 2020. Interactive range-limit theory (iRLT): An extension for predicting range shifts. *Journal of Animal Ecology*. 89(4):940-945
+
+Sherpa S, Guéguen M, Renaud J, Blum MGB, Gaude T, Laporte F, Akiner M, Alten B, Aranda C, Barre-Cardi H, Bellini R, Bengoa Paulis M, Chen XG, Eritja R, Flacio E, Foxi C, Ishak IH, Kalan K, Kasai S, Montarsi F, Pajović I, Petrić D, Termine R, Turić N, Vazquez-Prokopec GM, Velo E, Vignjević G, Zhou X, Després L. 2019. Predicting the success of an invader: Niche shift versus niche conservatism. *Ecology and Evolution*. 9(22):12658-12675
+
+Sofaer HR, Jarnevich CS, Flather CH. 2018. Misleading prioritizations from modelling range shifts under climate change. *Global Ecology and Biogeography*. 27(6):658-666
+
+Sohl T, Reker R, Bouchard M, Sayler K, Dornbierer J, Wika S, Quenzer R, Friesz A. 2016. Modeled historical land use and land cover for the conterminous United States. *Journal of Land Use Science*. 11(4):476-499
+
+Sol D, Duncan RP, Blackburn TM, Cassey P, Lefebvre L. 2005. Big brains, enhanced cognition, and response of birds to novel environments. *Proceedings of the National Academy of Science of the United States of America*. 102(15):5460-5465. [https://doi.org/10.1073/pnas.0408145102](https://doi.org/10.1073/pnas.0408145102)
+
+Sol D, Lapiedra O, González-Lagos C. 2013. Behavioral adjustments for a life in the city. *Animal Behavior*. 84:1101-1112
+
+Sol D, Lefebvre L. 2000. Behavioural Flexibility predicts invasion success in birds introduced to new zealand. *Oikos*. 90(3):599-605.  [https://doi.org/10.1034/j.1600-0706.2000.900317.x](https://doi.org/10.1034/j.1600-0706.2000.900317.x)
+
+Sol D, Székely T, Liker A, Lefebvre L. 2007. Big-brained birds survive better in nature. *Proceedings of the Royal Society of London B: Biological Sciences*. 274(1611):763-769
+
+Sol D, Timmermans S, Lefebvre L. 2002. Behavioural flexibility and invasion success in birds. *Animal Behaviour*. 63(3):495-502
+
+Strimas-Mackey M, Hochachka WM, Ruiz-Gutierrez V, Robinson OJ, Miller ET, Auer T, Kelling S, Fink D, Johnston A. 2020. Best Practices for Using eBird Data. Version 1.0. [https://cornelllabofornithology.github.io/ebird-best-practices/](https://cornelllabofornithology.github.io/ebird-best-practices/). Cornell Lab of Ornithology, Ithaca, New York. [https://doi.org/10.5281/zenodo.3620739](https://doi.org/10.5281/zenodo.3620739)
+
+Strimas-Mackey M, Miller E, Hochachka W. 2018. auk: eBird data extraction and processing with AWK. R package version 0.3.0. https://cornelllabofornithology.github.io/auk/
+
+Sullivan BL, Aycrigg JL, Barry JH, Bonney RE, Bruns N, Cooper CB, … Kelling S. 2014. The eBird enterprise: An integrated approach to development and application of citizen science. *Biological Conservation*. 169:21-40. https://doi.org/10.1016/j. biocon.2013.11.003
+
+Taylor AH, Hunt GR, Holzhaider JC, Gray RD. 2007. Spontaneous metatool use by new caledonian crows. *Current Biology*. 17(17):1504-1507
+
+Thomas C. 2010. Climate, climate change and range boundaries. *Diversity and Distributions*. 16(3):488-495
+
+Tomiolo S, Ward D. 2018. Species migrations and range shifts: A synthesis of causes and consequences. *Perspectives in Plant Ecology, Evolution and Systematics*. 33:62-77
+
+Torres LG, Sutton JH, Thompson DR, Karine D, Weimerskirch H, Sagar PM, Sommer E, Dilley BJ, Ryan PG, Phillips RA. 2015. Poor transferability of species distribution models for a pelagic predator, the grey petrel, indicates contrasting habitat preferences across ocean basins. *PLoS ONE*. 10(3):e0120014
+
+Urbanek S. 2020. rJava: Low-level r to java interface. [https://CRAN.R-project.org/package=rJava](https://cran.r-project.org/package=rJava)
+
+Vitousek PM, D’Antonio CM, Loope LL, Rejmánek M, Westbrooks R. 1997. Introduced species: a significant component of human-caused global change. *New Zealand Journal of Ecology*. 21(1):1-16
+
+Wehtje W. 2003. The range expansion of the great-tailed grackle (quiscalus mexicanus gmelin) in north america since 1880. *Journal of Biogeography*. 30(10):1593–1607
+
+Wiens JA. 1997. Metapopulation dynamics and landscape ecology. In *Metapopulation biology* (pp. 43-62). Elsevier.
+
+Wiens JJ, Ackerly DD, Allen AP, Anacker BL, Buckley LB, Cornell HV, Damschen EI, Davies TJ, Grytnes JA, Harrison SP, Hawkins BA, Holt RD, McCain CM, Stephens PR. 2010. Niche conservatism as an emerging principle in ecology and conservation biology. *Ecology Letters*. 13(10):1310-1324
+
+Wickham H, Averick M, Bryan J, Chang W, McGowan LD, François R, Grolemund G, Hayes A, Henry L, Hamster J, Khun M, Pedersen TL, Miller E, Bache SM, Müller K, Ooms J, Robinson D, Seidel DP, Spinu V, … Yutani H. 2019. Welcome to the tidyverse. *Journal of Open Source Software*. 4(43):1686. [https://doi.org/10.21105/joss.01686](https://doi.org/10.21105/joss.01686)
+
+Wolff CL, Demarais S, Brooks CP, Brandon TB. 2020. Behavioral plasticity mitigates the effect of warming on white-tailed deer. *Ecology and Evolution*. 10(5):2579-2587
+
+Wong B, Candolin U. 2015. Behavioral responses to changing environments. *Behavioral Ecology*. 26(3):665-673
+
+Wright MN, Ziegler A. 2017. ranger : A fast implementation of random forests for high dimensional data in C++ and R. *Journal of Statistical Software*. 77(1):1-17. doi:10.18637/jss.v077.i01
+
+Wright TF, Eberhard JR, Hobson EA, Avery ML, Russello MA. 2010. Behavioral flexibility and species invasions: The adaptive flexibility hypothesis. *Ethology Ecology \& Evolution*. 22(4):393-404 
+
+Wu J, Jenerette GD, Buyantuyev A, Redman CL. 2011. Quantifying spatiotemporal patterns of urbanization: The case of the two fastest growing metropolicant regions in the united states. *Ecological Complexity*. 8(1):1-8
+
+Wu W, Li Y, Hu Y. 2016. Simulation of potential habitat overlap between red deer (*Cervus elaphus*) and roe deer (*Capreolus capreolus*) in northeastern China. *PeerJ*. e1756 
+
+Yates KL, Bouchet MP, Caley MJ, Mengersen K, Randin CF, Parnell S, … Sequeira AMM. 2018. Outstanding challenges in the transferability of ecological models. *Trends in Ecology and Evolution*. 33(10):790-802

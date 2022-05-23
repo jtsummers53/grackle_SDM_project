@@ -4419,13 +4419,13 @@ ConExpand <- plot_grid(HistCon, CurExpand)
 
 allExpand <- plot_grid(EnvExpand, HabExpand, ConExpand, OtherExpand, 
                        scale = c(0.85, 0.85, 0.85, 0.85),
-                       labels = c("Increased Suitable Habitat",
-                                  "Increased Habitat Breadth",
-                                  "Increased Habitat Connectivity",
-                                  "Inherent Species Trait"),
+                       labels = c("Prediction 1:\nIncreased Suitable Habitat",
+                                  "Prediction 2:\nIncreased Habitat Breadth",
+                                  "Prediction 3:\nIncreased Habitat Connectivity",
+                                  "Prediction 4:\nInherent Species Trait"),
                        label_size = 20,
                        align = 'vh',
-                       label_x = .3, hjust = 0)
+                       label_x = .3, hjust = 0, label_y = 1.05)
 
 
 # create version with actual results
@@ -4585,7 +4585,7 @@ pdf(file = "results/aim1_2_figures_20211103/hypothesis_plot.pdf",
     width = 15,
     height = 12)
 
-plot_grid(RangeResults, allExpand, nrow = 2, rel_heights = c(1, 2),
+plot_grid(allExpand, RangeResults, nrow = 2, rel_heights = c(2, 1),
           labels = c("A", "B"), label_size = 28)
 
 dev.off()

@@ -49,6 +49,7 @@ library(ggh4x) # 0.2.1
 library(ggsn) # 0.5.0
 library(ggnewscale) # 0.4.5
 library(usdm) # 1.1-18
+library(ecospat) # 3.3
 ```
 
 # Data File Directories
@@ -3215,6 +3216,423 @@ land_use.change$per2010 <- filter(land_use.melt, year == 2010) %>%
 write_csv(land_use.change, file = "results/niche_breadth_20220302/land_cover_change.csv")
 
 ```
+
+# Niche Similarity Test
+
+For the niche similarity test, we used the niche.similarity.test function from the ecospat package. This package allowed us to quantify the occurrence rates for each species across a 2D plane created using a PCA of the environmental predictors. We then compared these occurrence rates relative to the abundance of the environmental conditions within each sample to determine if there is less similarity in occupied habitat than expected by chance. The expectation is supported by simulations that re-assign occurrence points between samples.
+
+We first run our niche similarity test for the great-tailed grackle.
+
+```{r, eval = FALSE}
+# load occurrence data
+# load ebird data
+habitat_checklist_hist <- read_csv("data/env/habitat_checklist70_20210826.csv") %>% 
+  data.frame()
+
+habitat_checklist_cur <- read_csv("data/env/habitat_checklist2019_20220304.csv") %>% 
+  data.frame()
+
+habitat_checklist <- rbind(habitat_checklist_hist, habitat_checklist_cur)
+rm(habitat_checklist_cur, habitat_checklist_hist)
+
+gtg_ebird_zf <- read_csv("data/eBird/gtg_ebird_zf.csv") %>% data.frame()
+
+# filter for 1970-1979 observations and id is in lc_checklists
+gtg_pts <- filter(gtg_ebird_zf, (year >= 1970 & year <= 1979) | (year >= 2010 & year <= 2019), 
+                    locality_id %in% habitat_checklist$locality_id, grepl("US-", 
+                                                                          state_code))
+
+rm(gtg_ebird_zf)
+
+# combine habitat data and ebird data for full set of data for testing model
+gtg_full <- inner_join(gtg_pts, habitat_checklist, by = c("locality_id","year"))
+
+rm(gtg_pts, habitat_checklist)
+
+# get data for relevant study area to create model
+gtg_locations_hist <- read_csv("data/env/habitat_checklist1979_gtg.csv") %>% data.frame()
+
+gtg_locations_cur <- read_csv("data/env/habitat_checklist_gtg.csv") %>% data.frame()
+
+gtg_habitat <- filter(gtg_full, checklist_id %in% gtg_locations_cur$checklist_id |
+                        checklist_id %in% gtg_locations_hist$checklist_id)
+
+# exclude points with NAs
+gtg_habitat <- gtg_habitat[complete.cases(gtg_habitat), ]
+
+# remember to remove unneeded data frames
+rm(gtg_full, gtg_locations_cur, gtg_locations_hist)
+
+# filter for variables used within the species distribution models
+gtg_habitat_model <- gtg_habitat %>% dplyr::select(species_observed, year,
+                                                   starts_with("pland_"),
+                                                   -pland_00_NA,
+                                                   -pland_17_ice_snow,
+                                                   -pland_07_barren,
+                                                   starts_with("elevation_med"),
+                                                   fresh, coast,
+                                                   bio2, bio5, bio8,
+                                                   bio9, bio13, bio14, bio19) %>%
+  drop_na()
+
+# create PCA to reduce the number of dimensions to 2
+gtg_pca <- prcomp(gtg_habitat_model[gtg_habitat_model$species_observed == TRUE, 
+                                    3:23], 
+                  scale. = TRUE)
+
+# transform all data
+gtg_pca_full <- predict(gtg_pca, gtg_habitat_model[, 3:23])
+
+
+gtg_importance <- summary(gtg_pca)
+gtg_rotation <- gtg_pca$rotation
+
+gtg_habitat_pca <- cbind(gtg_habitat_model[,1:2], 
+                         data.frame(gtg_pca_full[,1:2]))
+
+gtg_habitat_pca$group <- gtg_habitat_pca$year <= 1979
+
+# create grids
+hist_grid <- ecospat.grid.clim.dyn(gtg_habitat_pca[, 3:4],
+                                   gtg_habitat_pca[gtg_habitat_pca$group == TRUE, 3:4],
+                                   gtg_habitat_pca[gtg_habitat_pca$group == TRUE &
+                                                  gtg_habitat_pca$species_observed  == TRUE, 
+                                                  3:4],
+                                   100)
+
+cur_grid <- ecospat.grid.clim.dyn(gtg_habitat_pca[, 3:4],
+                                   gtg_habitat_pca[gtg_habitat_pca$group == FALSE, 3:4],
+                                   gtg_habitat_pca[gtg_habitat_pca$group == FALSE &
+                                                  gtg_habitat_pca$species_observed  == TRUE,
+                                                   3:4],
+                                   100)
+
+# create overlap test
+niche_overlap <- ecospat.niche.equivalency.test(hist_grid, cur_grid, 300,
+                                                overlap.alternative = "lower",
+                                                expansion.alternative = "higher",
+                                                stability.alternative = "lower",
+                                                unfilling.alternative = "higher",
+                                                # intersection = 0 restricts our comparison to analogous environments
+                                                intersection = 0)
+
+save(niche_overlap, gtg_importance, gtg_rotation, gtg_habitat_pca,
+     file = "results/niche_overlap/GTGR_niche_overlap_20221012.rdata")
+```
+
+Next we repeat our analysis for the boat-tailed grackle.
+
+```{r, eval = FALSE}
+# load occurrence data
+# load ebird data
+habitat_checklist_hist <- read_csv("data/env/habitat_checklist70_20210826.csv") %>% 
+  data.frame()
+
+habitat_checklist_cur <- read_csv("data/env/habitat_checklist2019_20220304.csv") %>% 
+  data.frame()
+
+habitat_checklist <- rbind(habitat_checklist_hist, habitat_checklist_cur)
+rm(habitat_checklist_cur, habitat_checklist_hist)
+
+btg_ebird_zf <- read_csv("data/eBird/btg_ebird_zf.csv") %>% data.frame()
+
+# filter for 1970-1979 observations and id is in lc_checklists
+btg_pts <- filter(btg_ebird_zf, (year>=1970 & year<=1979) | (year>=2010 & year<=2019), 
+                    locality_id %in% habitat_checklist$locality_id, grepl("US-", 
+                                                                          state_code))
+
+rm(btg_ebird_zf)
+
+# combine habitat data and ebird data for full set of data for testing model
+btg_full <- inner_join(btg_pts, habitat_checklist, by = c("locality_id","year"))
+
+rm(btg_pts, habitat_checklist)
+
+# get data for relevant study area to create model
+btg_locations_hist <- read_csv("data/env/habitat_checklist1979_btg.csv") %>% data.frame()
+
+btg_locations_cur <- read_csv("data/env/habitat_checklist_btg.csv") %>% data.frame()
+
+btg_habitat <- filter(btg_full, checklist_id %in% btg_locations_cur$checklist_id |
+                        checklist_id %in% btg_locations_hist$checklist_id)
+
+# exclude points with NAs
+btg_habitat <- btg_habitat[complete.cases(btg_habitat), ]
+
+# remember to remove unneeded data frames
+rm(btg_full, btg_locations_cur, btg_locations_hist)
+
+# filter for variables used within the species distribution models
+btg_habitat_model <- btg_habitat %>% dplyr::select(species_observed, year,
+                                                   starts_with("pland_"),
+                                                   -pland_00_NA,
+                                                   -pland_17_ice_snow,
+                                                   -pland_07_barren,
+                                                   starts_with("elevation_med"),
+                                                   fresh, coast,
+                                                   bio2, bio5, bio8,
+                                                   bio9, bio13, bio14, bio19) %>%
+  drop_na()
+
+# create PCA to reduce the number of dimensions to 2
+btg_pca <- prcomp(btg_habitat_model[btg_habitat_model$species_observed == TRUE, 
+                                    3:23], 
+                  scale. = TRUE)
+
+# transform all data
+btg_pca_full <- predict(btg_pca, btg_habitat_model[, 3:23])
+
+
+btg_importance <- summary(btg_pca)
+btg_rotation <- btg_pca$rotation
+
+btg_habitat_pca <- cbind(btg_habitat_model[,1:2], 
+                         data.frame(btg_pca_full[,1:2]))
+
+btg_habitat_pca$group <- btg_habitat_pca$year <= 1979
+
+# create grids
+hist_grid <- ecospat.grid.clim.dyn(btg_habitat_pca[, 3:4],
+                                   btg_habitat_pca[btg_habitat_pca$group == TRUE, 3:4],
+                                   btg_habitat_pca[btg_habitat_pca$group == TRUE &
+                                                  btg_habitat_pca$species_observed  == TRUE, 
+                                                  3:4],
+                                   100)
+
+cur_grid <- ecospat.grid.clim.dyn(btg_habitat_pca[, 3:4],
+                                   btg_habitat_pca[btg_habitat_pca$group == FALSE, 3:4],
+                                   btg_habitat_pca[btg_habitat_pca$group == FALSE &
+                                                  btg_habitat_pca$species_observed  == TRUE,
+                                                   3:4],
+                                   100)
+
+# create overlap test
+niche_overlap <- ecospat.niche.equivalency.test(hist_grid, cur_grid, 100,
+                                                overlap.alternative = "lower",
+                                                expansion.alternative = "higher",
+                                                stability.alternative = "lower",
+                                                unfilling.alternative = "higher",
+                                                # intersection = 0 restricts our comparison to analogous environments
+                                                intersection = 0)
+
+save(niche_overlap, btg_importance, btg_rotation, btg_habitat_pca,
+     file = "results/niche_overlap/BTGR_niche_overlap_20221005.rdata")
+```
+
+We next generated the plots that display both the PCAs we used for the niche similarity test and the results of the test in terms of Warren's I.
+
+```{r, eval = FALSE}
+load("results/niche_overlap/GTGR_niche_overlap_20221005.rdata")
+gtg_rotation <- data.frame(gtg_rotation)
+gtg_rotation$var <- rownames(gtg_rotation)
+gtg_habitat_pca$group <- gtg_habitat_pca$year <= 1979
+
+gtg_binned <- mutate(gtg_habitat_pca, PC1_bin = ntile(PC1, n = 100),
+                     PC2_bin = ntile(PC2, n = 100)) %>%
+  group_by(group, PC2_bin) %>%
+  summarize(occur = mean(species_observed))
+
+# create enviornmental variable labels
+envLabel <- c("Mean Diurnal Range", "Max Temp. Warm Month", 
+              "Mean Temp. Wet Quart.", "Mean Temp. Dry Quart.", "Precip. Wet Month",
+              "Precip. Dry Month","Precip. Cold Quart.", 
+              "Elevation",
+              "Dist. to River/Lake", "Distance to Coast",
+              "Year", "Day of Year", "Obs. Time", "Obs. Duration", 
+              "Travel Dist.",
+              "Obs. Number", "Water Cover",
+              "Urban", "Barren", "Evergreen Forest", "Shrubland", "Cropland",
+              "Pasture", "Mixed Forest", "Grassland", "Deciduous Forest", 
+              "Herbaceous Wetland",
+              "Woody Wetland", "Ice/Snow")
+
+names(envLabel) <- c("bio2", "bio5", "bio8", "bio9", "bio13", "bio14", "bio19", 
+                     "elevation_median",
+                     "fresh", "coast",
+                     "year", "day_of_year", "time_observations_started", 
+                     "duration_minutes",
+                     "effort_distance_km", "number_observers", "pland_01_water",
+                     "pland_02_urban",
+                     "pland_07_barren", "pland_09_evergreen_forest", 
+                     "pland_12_shrubland",
+                     "pland_13_cultivated_crops", "pland_14_hay_pasture", 
+                     "pland_10_mixed_forest",
+                     "pland_11_grassland", "pland_08_deciduous_forest", 
+                     "pland_15_herbaceous_wetland",
+                     "pland_16_woody_wetland", "pland_17_ice_snow")
+
+
+
+# subsample the current observations to make for easier plotting
+gtg_habitat_pca_filter <- filter(gtg_habitat_pca, species_observed, !group) %>%
+  sample_n(1000)
+gtg_habitat_pca_filter <- rbind(gtg_habitat_pca_filter, 
+                                 filter(gtg_habitat_pca, species_observed, group))
+
+# create plot of gtg pca
+pca_plot <- ggplot(gtg_habitat_pca_filter) +
+  geom_point(aes(x = scale(PC1), y = scale(PC2), col = !group,
+                 pch = !group), alpha = 0.5, size = 3) +
+  labs(x = paste("PC1 ", round(gtg_importance$importance[2, 1]*100, 2), "%"),
+       y = paste("PC2 ", round(gtg_importance$importance[2, 2]*100, 2), "%"),
+       col = "Time Period", pch = "Time Period") +
+  #stat_ellipse(aes(x = scale(PC1), y = scale(PC2), col = !group)) +
+  geom_segment(data = gtg_rotation, 
+               aes(x = 0, y = 0, xend = PC1*4, yend = PC2*4),
+               arrow = arrow(length=unit(0.30,"cm"))) +
+  geom_text(data = gtg_rotation,
+  # we scaled the rotaion value for clearer reading
+             aes(x = PC1*4, y = PC2*4, label = envLabel[var], 
+                 hjust = ifelse(PC1 > 0, 0, 1),
+                 vjust = ifelse(PC2 >0 , 0, 1)),
+            size = 5) +
+  scale_color_manual(values = c("#67001F", "#F4A582"), labels = c("1970-1979",
+                                                                  "2010-2019")) + 
+  scale_shape_manual(values = c(17, 19), labels = c("1970-1979", "2010-2019")) + 
+  theme_minimal() +
+  theme(panel.grid.major.x = element_line(colour = "#cccccc", size = 0.5),
+        text = element_text(size = 20))
+
+# create plot of niche similarity statistics
+sim.melt <- melt(niche_overlap$sim)
+obs.melt <- niche_overlap$obs %>% data.frame() %>% melt() %>%
+  cbind(p_value = c(niche_overlap$p.D, niche_overlap$p.I, niche_overlap$p.expansion,
+            niche_overlap$p.stability, niche_overlap$p.unfilling))
+
+hist_plot <- ggplot() +
+  geom_histogram(data = filter(sim.melt, variable %in% c("I")), 
+                 aes(x = value), bins = 15) +
+  geom_vline(data = filter(obs.melt, variable %in% c("I")), 
+             aes(xintercept = value), col = "#F4A582", size = 2) +
+  labs(x = "Warren's I", y = "Frequency") +
+  geom_text(data = filter(obs.melt, variable %in% c("I")), 
+            aes(x = value, y = 15, 
+            label = paste0("Observed Value\n", "p-value = ", 
+                           round(p_value, 3))), 
+            hjust = -0.1, size = 6) +
+  theme_minimal() +
+  #facet_wrap(variable~., scales = "free_x") +
+  theme(panel.grid.major.x = element_line(colour = "#cccccc", size = 0.5),
+        text = element_text(size = 20))
+
+# combine plots
+
+pdf(file = "results/niche_overlap/GTGR_niche_overlap_plot_20221012.pdf",
+    width = 16,
+    height = 16)
+plot_grid(pca_plot, hist_plot, nrow = 2, rel_heights = c(2, 1),
+          labels = c("A.", "B."), label_size = 26, label_y = 1.01, scale = c(1, 0.98),
+          label_x = -0.01)
+dev.off()
+```
+
+We repeated the plot making process for the boat-tailed grackle.
+
+```{r, eval = FALSE}
+load("results/niche_overlap/BTGR_niche_overlap_20221005.rdata")
+btg_rotation <- data.frame(btg_rotation)
+btg_rotation$var <- rownames(btg_rotation)
+
+
+btg_binned <- mutate(btg_habitat_pca, PC1_bin = ntile(PC1, n = 100),
+                     PC2_bin = ntile(PC2, n = 100)) %>%
+  group_by(group, PC1_bin) %>%
+  summarize(occur = mean(species_observed))
+
+# create enviornmental variable labels
+envLabel <- c("Mean Diurnal Range", "Max Temp. Warm Month", 
+              "Mean Temp. Wet Quart.", "Mean Temp. Dry Quart.", "Precip. Wet Month",
+              "Precip. Dry Month","Precip. Cold Quart.", 
+              "Elevation",
+              "Dist. to River/Lake", "Distance to Coast",
+              "Year", "Day of Year", "Obs. Time", "Obs. Duration", 
+              "Travel Dist.",
+              "Obs. Number", "Water Cover",
+              "Urban", "Barren", "Evergreen Forest", "Shrubland", "Cropland",
+              "Pasture", "Mixed Forest", "Grassland", "Deciduous Forest", 
+              "Herbaceous Wetland",
+              "Woody Wetland", "Ice/Snow")
+
+names(envLabel) <- c("bio2", "bio5", "bio8", "bio9", "bio13", "bio14", "bio19", 
+                     "elevation_median",
+                     "fresh", "coast",
+                     "year", "day_of_year", "time_observations_started", 
+                     "duration_minutes",
+                     "effort_distance_km", "number_observers", "pland_01_water",
+                     "pland_02_urban",
+                     "pland_07_barren", "pland_09_evergreen_forest", 
+                     "pland_12_shrubland",
+                     "pland_13_cultivated_crops", "pland_14_hay_pasture", 
+                     "pland_10_mixed_forest",
+                     "pland_11_grassland", "pland_08_deciduous_forest", 
+                     "pland_15_herbaceous_wetland",
+                     "pland_16_woody_wetland", "pland_17_ice_snow")
+
+
+
+# subsample the current observations to make for easier plotting
+btg_habitat_pca_filter <- filter(btg_habitat_pca, species_observed, !group) %>%
+  sample_n(1000)
+btg_habitat_pca_filter <- rbind(btg_habitat_pca_filter, 
+                                 filter(btg_habitat_pca, species_observed, group))
+
+# create plot of btg pca
+pca_plot <- ggplot(btg_habitat_pca_filter) +
+  geom_point(aes(x = scale(PC1), y = scale(PC2), col = !group,
+                 pch = !group), alpha = 0.5, size = 3) +
+  labs(x = paste("PC1 ", round(btg_importance$importance[2, 1]*100, 2), "%"),
+       y = paste("PC2 ", round(btg_importance$importance[2, 2]*100, 2), "%"),
+       col = "Time Period", pch = "Time Period") +
+  #stat_ellipse(aes(x = scale(PC1), y = scale(PC2), col = !group)) +
+  geom_segment(data = btg_rotation, 
+               aes(x = 0, y = 0, xend = PC1*4, yend = PC2*4),
+               arrow = arrow(length=unit(0.30,"cm"))) +
+  geom_text(data = btg_rotation, 
+             aes(x = PC1*4, y = PC2*4, label = envLabel[var], 
+                 hjust = ifelse(PC1 > 0, 0, 1),
+                 vjust = ifelse(PC2 >0 , 0, 1)),
+            size = 5) +
+  scale_color_manual(values = c("#053061", "#458CFF"), labels = c("1970-1979",
+                                                                  "2010-2019")) + 
+  scale_shape_manual(values = c(17, 19), labels = c("1970-1979", "2010-2019")) + 
+  theme_minimal() +
+  theme(panel.grid.major.x = element_line(colour = "#cccccc", size = 0.5),
+        text = element_text(size = 20))
+
+# create plot of niche similarity statistics
+sim.melt <- melt(niche_overlap$sim)
+obs.melt <- niche_overlap$obs %>% data.frame() %>% melt() %>%
+  cbind(p_value = c(niche_overlap$p.D, niche_overlap$p.I, niche_overlap$p.expansion,
+                    niche_overlap$p.stability, niche_overlap$p.unfilling))
+
+hist_plot <- ggplot() +
+  geom_histogram(data = filter(sim.melt, variable %in% c("I")), 
+                 aes(x = value), bins = 15) +
+  geom_vline(data = filter(obs.melt, variable %in% c("I")), 
+             aes(xintercept = value), col = "#458CFF", size = 2) +
+  labs(x = "Warren's I", y = "Frequency") +
+  geom_text(data = filter(obs.melt, variable %in% c("I")), 
+            aes(x = value, y = 15, 
+                label = paste0("Observed Value\n", "p-value = ", 
+                               round(p_value, 3))), 
+            hjust = -0.1, size = 6, col = "white") +
+  theme_minimal() +
+  #facet_wrap(variable~., scales = "free_x") +
+  theme(panel.grid.major.x = element_line(colour = "#cccccc", size = 0.5),
+        text = element_text(size = 20))
+
+# combine plots
+
+pdf(file = "results/niche_overlap/BTGR_niche_overlap_plot_20221012.pdf",
+    width = 16,
+    height = 16)
+plot_grid(pca_plot, hist_plot, nrow = 2, rel_heights = c(2, 1),
+          labels = c("A.", "B."), label_size = 26, label_y = 1.01, scale = c(1, 0.98),
+          label_x = -0.01)
+dev.off()
+
+```
+
 
 # Habitat Connectivity
 
